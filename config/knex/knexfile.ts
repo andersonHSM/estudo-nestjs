@@ -1,7 +1,7 @@
 // Update with your config settings.
-import { enviroments } from './knex-enviroments';
+import { environments } from './knex-environments';
 
-const { development, production } = enviroments;
+const { development, production } = environments;
 
 module.exports = {
   development,

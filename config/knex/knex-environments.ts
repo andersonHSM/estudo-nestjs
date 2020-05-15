@@ -31,7 +31,7 @@ const production: Config = {
   },
 };
 
-export const enviroments = {
+export const environments = {
   development,
   production,
 };

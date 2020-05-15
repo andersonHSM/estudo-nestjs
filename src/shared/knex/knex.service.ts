@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 
-import * as knex from 'knex';
+import knex = require('knex');
 
 @Injectable()
 export class KnexService {
