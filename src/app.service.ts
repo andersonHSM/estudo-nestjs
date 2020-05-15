@@ -11,17 +11,14 @@ export class AppService {
     return 'Hello World!';
   }
 
-  async createUser(data: any) {
-    const user = await this.knex('usuarios')
-      // .returning(['name', 'sobrenome'])
+  createUser(data: any) {
+    return this.knex('usuarios')
+      .returning(['name', 'sobrenome'])
       .insert(data, ['name', 'sobrenome']);
-
-    console.log(user);
-    return user;
   }
 
-  async getData() {
-    return await this.knex('usuarios')
+  getData() {
+    return this.knex('usuarios')
       .select('*')
       .from('usuarios');
   }
