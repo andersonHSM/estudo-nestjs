@@ -4,7 +4,7 @@ import * as knex from 'knex';
 
 @Injectable()
 export class KnexService {
-  connect(enviroment) {
+  static connect(enviroment) {
     return knex(enviroment);
   }
 }

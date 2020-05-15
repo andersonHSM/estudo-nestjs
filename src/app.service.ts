@@ -1,9 +1,11 @@
 import { Injectable, Inject } from '@nestjs/common';
 import Knex = require('knex');
 
+import { KNEX_CONNECTION } from 'config/knex/knex.token';
+
 @Injectable()
 export class AppService {
-  constructor(@Inject('KNEX') private readonly knex: Knex) {}
+  constructor(@Inject(KNEX_CONNECTION) private readonly knex: Knex) {}
 
   getHello(): string {
     return 'Hello World!';
