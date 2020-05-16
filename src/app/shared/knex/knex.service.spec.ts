@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { KnexService } from './knex.service';
 
-import { environments } from '../../../config/knex/knex-environments';
+import { environments } from '../../../../config/knex/knex-environments';
 
 describe('KnexService', () => {
   let service: KnexService;
@@ -9,7 +9,7 @@ describe('KnexService', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [KnexService],
+      providers: [{ provide: KnexService, useValue: true }],
     }).compile();
 
     service = module.get<KnexService>(KnexService);

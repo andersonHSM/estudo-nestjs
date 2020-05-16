@@ -1,8 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Scope } from '@nestjs/common';
 
 import knex = require('knex');
 
-@Injectable()
+@Injectable({ scope: Scope.DEFAULT })
 export class KnexService {
   static connect(enviroment) {
     return knex(enviroment);

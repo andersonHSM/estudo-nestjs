@@ -9,10 +9,6 @@ const development: Config = {
     port: 5432,
     database: 'estudo',
   },
-  migrations: {
-    tableName: 'knex-migrations',
-    directory: 'migrations',
-  },
 };
 
 const production: Config = {
