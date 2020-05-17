@@ -6,7 +6,7 @@ import { UsuariosService } from '../usuarios/usuarios.service';
 import Knex = require('knex');
 import { compare } from 'bcrypt';
 
-import { KNEX_CONNECTION } from '@config/knex/knex.token';
+import { KNEX_CONNECTION } from 'src/app/config/knex/knex.token';
 import { LoginData } from '@shared/models/auth/login.model';
 
 @Injectable()

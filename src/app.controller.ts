@@ -12,7 +12,7 @@ export class AppController {
     return this.appService.getHello();
   }
 
-  @UseGuards(JwtAuthGuard)
+  // @UseGuards(JwtAuthGuard)
   @Get('profile')
   async testJwt(@Request() req) {
     return req.user;
