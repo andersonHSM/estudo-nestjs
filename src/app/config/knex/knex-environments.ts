@@ -1,7 +1,5 @@
 import { Config } from 'knex';
-import envSelector from 'env-selector';
 
-envSelector();
 const environment: Config = {
   client: process.env.DB_CLIENT,
   connection: {
