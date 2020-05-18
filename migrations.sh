@@ -9,4 +9,4 @@ do
 esac
 done
 
-knex migrate:make --knexfile ./src/config/knex/knexfile.ts --migrations-directory ./config/knex/migrations --env $env --name $name
+NODE_ENV=$env knex migrate:make --migrations-directory ./config/knex/migrations $name

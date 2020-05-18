@@ -1,3 +1,4 @@
+import '../../../env-selector';
 import { Config } from 'knex';
 
 const environment: Config = {
@@ -9,6 +10,8 @@ const environment: Config = {
     port: (process.env.DB_PORT as any) as number,
     database: process.env.DB_DATABASE,
   },
+  migrations: {
+    directory: process.env.DB_MIGRATIONS_FOLDER,
+  },
 };
-
 export default environment;

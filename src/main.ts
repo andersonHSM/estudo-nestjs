@@ -1,5 +1,4 @@
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import envSelector from 'env-selector';
+import 'env-selector';
 
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
