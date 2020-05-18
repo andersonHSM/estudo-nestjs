@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 
-import { KNEX_CONNECTION } from 'src/app/config/knex/knex.token';
-import environment from 'src/app/config/knex/knex-environments';
+import { KNEX_CONNECTION } from 'src/config/knex/knex.token';
+import environment from '@config/knex/knex-environments';
 import Knex = require('knex');
 
 const knexProvider = {

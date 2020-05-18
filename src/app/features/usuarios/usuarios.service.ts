@@ -1,5 +1,5 @@
 import { Injectable, Inject } from '@nestjs/common';
-import { KNEX_CONNECTION } from 'src/app/config/knex/knex.token';
+import { KNEX_CONNECTION } from '@config/knex/knex.token';
 
 import * as Knex from 'knex';
 
