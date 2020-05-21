@@ -10,14 +10,14 @@ import { UserInfoReturn } from '@shared/models/users/user-info-return.model';
 export class UsuariosService {
   constructor(@Inject(KNEX_CONNECTION) private readonly knex: Knex) {}
 
-  insertUser(data: UserCreate): Promise<UserInfoReturn[]> {
-    return this.knex('usuarios')
+  async insertUser(data: UserCreate): Promise<UserInfoReturn[]> {
+    return await this.knex('usuarios')
       .insert(data)
-      .returning(['id', 'nome', 'sobrenome', 'email']);
+      .returning(['id', 'nome', 'sobrenome', 'email', 'is_provider']);
   }
 
-  findUserByEmail(email: string): Promise<{ id: number }[]> {
-    return this.knex('usuarios')
+  async findUserByEmail(email: string): Promise<{ id: number }[]> {
+    return await this.knex('usuarios')
       .select('id')
       .where({ email })
       .limit(1);

@@ -4,4 +4,5 @@ export interface UserCreate {
   password?: string;
   password_hash?: string;
   email: string;
+  is_provider?: boolean;
 }
