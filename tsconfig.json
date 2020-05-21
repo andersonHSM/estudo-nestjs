@@ -11,6 +11,7 @@
     "baseUrl": "./",
     "incremental": true,
     "paths": {
+      "@common/*": ["src/app/common/*"],
       "@shared/*": ["src/app/shared/*"],
       "@config/*": ["src/config/*"]
     }

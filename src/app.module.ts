@@ -11,6 +11,7 @@ import { UsuariosModule } from './app/features/usuarios/usuarios.module';
 import { AuthModule } from './app/features/auth/auth.module';
 import { JwtMiddleware } from '@shared/middlewares/jwt.middleware';
 import { JwtModule } from '@nestjs/jwt';
+import { AvatarModule } from '@common/avatar/avatar.module';
 
 @Module({
   imports: [
@@ -20,11 +21,12 @@ import { JwtModule } from '@nestjs/jwt';
       secret: process.env.JWT_SECRET,
       signOptions: { expiresIn: process.env.JWT_EXPIRE_TIME },
     }),
+    AvatarModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {
+export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     consumer
       .apply(JwtMiddleware)
