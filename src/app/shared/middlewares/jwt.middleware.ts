@@ -10,8 +10,10 @@ import { Request, Response } from 'express';
 @Injectable()
 export class JwtMiddleware implements NestMiddleware {
   constructor(private readonly jwtService: JwtService) {}
+
   use(req: Request, res: Response, next: () => void) {
-    const authHeader = req.headers.authorization;
+    const { authorization: authHeader } = req.headers;
+
     if (!authHeader) {
       throw new HttpException(
         { error: 'Authorization header not provided.' },
