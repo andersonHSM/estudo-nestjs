@@ -1,5 +1,6 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject, Res } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { Response } from 'express';
 
 import { UsuariosService } from '../usuarios/usuarios.service';
 
@@ -17,33 +18,37 @@ export class AuthService {
     private readonly jwtService: JwtService,
   ) {}
 
-  async validateUser(userLogin: LoginData) {
+  async validateUser(
+    userLogin: LoginData,
+  ): Promise<{ id?: number; error?: string }> {
     const authError = { error: 'Invalid credentials' };
     const { email, password: plainPassword } = userLogin;
 
-    const hashArray: { id: number; password_hash: string }[] = await this.knex
-      .select('id', 'password_hash')
-      .from('usuarios')
-      .where({ email })
-      .limit(1);
+    try {
+      const hashArray: { id: number; password_hash: string }[] = await this.knex
+        .select('id', 'password_hash')
+        .from('usuarios')
+        .where({ email })
+        .limit(1);
 
-    // eslint-disable-next-line @typescript-eslint/camelcase
-    const { password_hash } = hashArray[0];
+      // eslint-disable-next-line @typescript-eslint/camelcase
+      const { password_hash } = hashArray[0];
 
-    const passwordsMatches = await compare(plainPassword, password_hash);
+      const passwordsMatches = await compare(plainPassword, password_hash);
 
-    if (!passwordsMatches) {
-      return authError;
+      if (!passwordsMatches) {
+        throw new Error(authError.error);
+      }
+
+      const [userReturn] = await this.usuariosService.findUserByEmail(email);
+
+      return userReturn;
+    } catch (error) {
+      throw new Error(error);
     }
-
-    const [userReturn] = await this.usuariosService.findUserByEmail(email);
-
-    return userReturn;
   }
 
-  async login(userId: number) {
-    return {
-      token: this.jwtService.sign({ userId }),
-    };
+  login(userId: number) {
+    return this.jwtService.sign({ userId });
   }
 }
