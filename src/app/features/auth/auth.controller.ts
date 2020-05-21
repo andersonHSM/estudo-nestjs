@@ -1,4 +1,11 @@
-import { Controller, Post, Body, Res } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Res,
+  HttpException,
+  HttpStatus,
+} from '@nestjs/common';
 import { Response } from 'express';
 
 import { AuthService } from './auth.service';
@@ -13,9 +20,12 @@ export class AuthController {
       const user = await this.authService.validateUser(body);
       const token = this.authService.login(user.id);
 
-      return res.status(200).json({ token });
+      return res.status(200).json({ token, user: user.id });
     } catch (error) {
-      return res.status(403).json({ error: 'Invalid credentials provided.' });
+      throw new HttpException(
+        { error: 'Invalid credentials provided.' },
+        HttpStatus.FORBIDDEN,
+      );
     }
   }
 }

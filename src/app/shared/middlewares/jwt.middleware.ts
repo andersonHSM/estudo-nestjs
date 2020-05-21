@@ -27,9 +27,12 @@ export class JwtMiddleware implements NestMiddleware {
       return res.status(403).json({ error: 'Token not provided' });
     }
 
-    const { userId } = this.jwtService.verify(token);
-
-    req.user = userId;
-    next();
+    try {
+      const { userId } = this.jwtService.verify(token);
+      req.user = userId;
+      next();
+    } catch (err) {
+      throw new HttpException({ err }, HttpStatus.BAD_REQUEST);
+    }
   }
 }
