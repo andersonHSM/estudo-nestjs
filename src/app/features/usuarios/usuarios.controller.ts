@@ -5,11 +5,8 @@ import {
   Res,
   HttpException,
   HttpStatus,
-  Patch,
-  Param,
-  Req,
 } from '@nestjs/common';
-import { Response, Request } from 'express';
+import { Response } from 'express';
 
 import { UserCreate } from '@shared/models/users/user-create.models';
 import { UsuariosService } from './usuarios.service';
@@ -41,23 +38,5 @@ export class UsuariosController {
     const [user] = await this.usuariosService.insertUser(data);
 
     return res.status(200).json(user);
-  }
-
-  @Patch(':id')
-  async updateUsuarioInfo(
-    @Body() body: any,
-    @Param() params: { id: string },
-    @Req() req: Request,
-  ) {
-    const { id: paramId } = params;
-    const { user: reqId } = req;
-
-    const [updatedUser] = await this.usuariosService.updateUser(
-      paramId,
-      reqId.toString(),
-      body,
-    );
-
-    return updatedUser;
   }
 }
