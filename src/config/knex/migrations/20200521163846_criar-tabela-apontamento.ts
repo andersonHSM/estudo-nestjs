@@ -25,7 +25,7 @@ export async function up(knex: Knex): Promise<any> {
       .onUpdate('CASCADE')
       .onDelete('SET NULL');
 
-    table.timestamps();
+    table.timestamps(true, true);
 
     table
       .dateTime('canceled_at')
