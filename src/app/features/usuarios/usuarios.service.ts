@@ -10,6 +10,22 @@ import { UserPatch } from '@shared/models/users/user-patch.model';
 @Injectable()
 export class UsuariosService {
   constructor(@Inject(KNEX_CONNECTION) private readonly knex: Knex) {}
+  async isProvider(id: number): Promise<boolean> {
+    const [user] = (await this.knex('usuarios')
+      .where({ id, is_provider: true })
+      .returning('id')) as { id: number }[];
+
+    return user ? true : false;
+  }
+
+  async findUserById(id: number): Promise<{ id: number }> {
+    const [user] = await this.knex('usuarios')
+      .where({ id })
+      .select({ id })
+      .returning('id');
+
+    return user;
+  }
 
   async insertUser(data: UserCreate): Promise<UserInfoReturn[]> {
     return await this.knex('usuarios')

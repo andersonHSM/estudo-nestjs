@@ -1,4 +1,3 @@
-export interface ApontamentoCriar {
-  data: Date;
-  provedor_id: number;
-}
+import { ApontamentoModel } from './apontamento.model';
+
+export type ApontamentoCriar = Pick<ApontamentoModel, 'data' | 'provedor_id'>;
