@@ -44,7 +44,6 @@ export class ApontamentosService {
         .insert({ ...dados, user_id: user })
         .returning(['id', 'data', 'provedor_id', 'user_id']);
 
-      console.log(apontamento);
       return apontamento;
     } catch (error) {
       console.log(error);
@@ -56,11 +55,11 @@ export class ApontamentosService {
     data: Date,
     provedor: number,
   ): Promise<boolean> {
-    const novaDataMenoUmaHora = sub(new Date(data), { hours: 1 });
-    const novaDataMaisUmaHora = add(new Date(data), { hours: 1 });
+    const horaAnterior = sub(new Date(data), { minutes: 59 });
+    const proximaHora = add(new Date(data), { minutes: 59 });
 
     const [apontamentoJaMarcado] = await this.knex('apontamentos')
-      .whereBetween('data', [novaDataMenoUmaHora, novaDataMaisUmaHora])
+      .whereBetween('data', [horaAnterior, proximaHora])
       // eslint-disable-next-line @typescript-eslint/camelcase
       .where({ provedor_id: provedor })
       .select('id');
