@@ -15,6 +15,7 @@ import { alteracaoProibidaParaProvedorDiferenteException } from '@shared/excepti
 import { usuarioDesejadoNaoProvedorException } from '@shared/exceptions/usuarios/usuario-desejado-nao-provedor';
 import { usuarioProvedorIguaisException } from '@shared/exceptions/apontamentos/provedor-usuario-iguais';
 import { usuarioNaoEncontradoException } from '@shared/exceptions/usuarios/usuario-nao-encontrado';
+import { mudarApontamentoParaOutroUsuarioExpection } from '@shared/exceptions/apontamentos/mudar-para-outro-usuario';
 
 @Injectable()
 export class ApontamentosService {
@@ -123,7 +124,9 @@ export class ApontamentosService {
     if (!requisitanteProvedor) {
       if (reqId !== usuarioApontamentoId) {
         throw alteracaoProibidaParaUsuarioDiferenteException();
-      } else if (user_id !== usuarioApontamentoId)
+      } else if (user_id !== usuarioApontamentoId) {
+        throw mudarApontamentoParaOutroUsuarioExpection();
+      }
     } else if (requisitanteProvedor && provedor_id !== apontamentoProvedorId) {
       throw alteracaoProibidaParaProvedorDiferenteException();
     }
@@ -169,8 +172,10 @@ export class ApontamentosService {
 
       return novoApontamento;
     } catch (error) {
-      console.log(error);
-      throw new HttpException({ error }, HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new HttpException(
+        { error: error.hint },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 }
