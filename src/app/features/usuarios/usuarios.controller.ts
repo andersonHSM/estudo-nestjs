@@ -5,13 +5,17 @@ import {
   Res,
   HttpException,
   HttpStatus,
+  Patch,
+  Param,
+  Req,
 } from '@nestjs/common';
-import { Response } from 'express';
+import { Response, Request } from 'express';
 
 import { UserCreate } from '@shared/models/users/user-create.models';
 import { UsuariosService } from './usuarios.service';
 
 import { hash } from 'bcrypt';
+import { UserPatch } from '@shared/models/users/user-patch.model';
 
 @Controller('users')
 export class UsuariosController {
@@ -38,5 +42,23 @@ export class UsuariosController {
     const [user] = await this.usuariosService.insertUser(data);
 
     return res.status(200).json(user);
+  }
+
+  @Patch(':id')
+  async updateUsuarioInfo(
+    @Body() body: UserPatch,
+    @Param() params: { id: string },
+    @Req() req: Request,
+  ) {
+    const { id: paramId } = params;
+    const { user: reqId } = req;
+
+    const [updatedUser] = await this.usuariosService.updateUser(
+      paramId,
+      reqId.toString(),
+      body,
+    );
+
+    return updatedUser;
   }
 }

@@ -14,8 +14,7 @@
       "@common/*": ["src/app/common/*"],
       "@shared/*": ["src/app/shared/*"],
       "@config/*": ["src/config/*"]
-    },
-    "exclude": ["temp"]
+    }
   },
   "exclude": ["node_modules", "dist", "temp"]
 }

@@ -1,10 +1,11 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject, HttpException, HttpStatus } from '@nestjs/common';
 import { KNEX_CONNECTION } from '@config/knex/knex.token';
 
 import * as Knex from 'knex';
 
 import { UserCreate } from '@shared/models/users/user-create.models';
 import { UserInfoReturn } from '@shared/models/users/user-info-return.model';
+import { UserPatch } from '@shared/models/users/user-patch.model';
 
 @Injectable()
 export class UsuariosService {
@@ -21,5 +22,32 @@ export class UsuariosService {
       .select('id')
       .where({ email })
       .limit(1);
+  }
+
+  async updateUser(paramId: string, reqId: string, data: UserPatch) {
+    if (paramId !== reqId) {
+      throw new HttpException(
+        {
+          error: `You can't change others users info.`,
+        },
+        HttpStatus.FORBIDDEN,
+      );
+    }
+
+    try {
+      return await this.knex('usuarios')
+        .where({ id: paramId })
+        .update(data)
+        .returning([
+          'id',
+          'nome',
+          'sobrenome',
+          'email',
+          'avatar_id',
+          'is_provider',
+        ]);
+    } catch (error) {
+      throw new HttpException({ error }, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
   }
 }
