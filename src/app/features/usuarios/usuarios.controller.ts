@@ -15,6 +15,7 @@ import { UserCreate } from '@shared/models/users/user-create.models';
 import { UsuariosService } from './usuarios.service';
 
 import { hash } from 'bcrypt';
+import { UserPatch } from '@shared/models/users/user-patch.model';
 
 @Controller('users')
 export class UsuariosController {
@@ -45,7 +46,7 @@ export class UsuariosController {
 
   @Patch(':id')
   async updateUsuarioInfo(
-    @Body() body: any,
+    @Body() body: UserPatch,
     @Param() params: { id: string },
     @Req() req: Request,
   ) {

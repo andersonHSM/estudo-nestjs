@@ -5,6 +5,7 @@ import * as Knex from 'knex';
 
 import { UserCreate } from '@shared/models/users/user-create.models';
 import { UserInfoReturn } from '@shared/models/users/user-info-return.model';
+import { UserPatch } from '@shared/models/users/user-patch.model';
 
 @Injectable()
 export class UsuariosService {
@@ -23,11 +24,11 @@ export class UsuariosService {
       .limit(1);
   }
 
-  async updateUser(paramId: string, reqId: string, data: any) {
+  async updateUser(paramId: string, reqId: string, data: UserPatch) {
     if (paramId !== reqId) {
       throw new HttpException(
         {
-          error: `You can't change others users info`,
+          error: `You can't change others users info.`,
         },
         HttpStatus.FORBIDDEN,
       );
