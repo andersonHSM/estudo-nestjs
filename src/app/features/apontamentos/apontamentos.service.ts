@@ -232,12 +232,26 @@ export class ApontamentosService {
   }
 
   async ativarInativarApontamento(id: number, reqId: number) {
+    const usuario = await this.usuariosService.findUserById(reqId);
+    if (!usuario) {
+      throw usuarioNaoEncontradoException();
+    }
+
     const apontamento = await this.encontarApontamentoPeloId(id);
 
     if (!apontamento) {
       throw apontamentoNaoEncontradoException();
     }
-    const { canceled_at, data } = apontamento;
+    const { is_provider } = usuario;
+    const { canceled_at, data, provedor_id, user_id } = apontamento;
+
+    if (!is_provider && user_id !== reqId) {
+      throw alteracaoProibidaParaUsuarioDiferenteException();
+    }
+
+    if (is_provider && reqId !== provedor_id) {
+      throw alteracaoProibidaParaProvedorDiferenteException();
+    }
 
     if (isBefore(data, new Date())) {
       throw dataApontamentoMenorExpection();
