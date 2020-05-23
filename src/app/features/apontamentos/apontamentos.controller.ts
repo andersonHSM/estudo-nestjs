@@ -18,7 +18,7 @@ export class ApontamentosController {
   }
 
   @Patch(':id')
-  async inativarApontamento(
+  atualizarApontamento(
     @Body() body: ApontamentoEditar,
     @Req() req: Request,
     @Param() param: { id: string },
@@ -26,10 +26,17 @@ export class ApontamentosController {
     const { user } = req;
     const { id } = param;
 
-    return await this.apontamentosService.atualizarApontamento(
-      +id,
-      body,
-      +user,
-    );
+    return this.apontamentosService.atualizarApontamento(+id, body, +user);
+  }
+
+  @Post(':id')
+  ativarInativarApontamento(
+    @Param() param: { id: string },
+    @Req() req: Request,
+  ) {
+    const { id } = param;
+    const user = req.user as number;
+
+    return this.apontamentosService.ativarInativarApontamento(+id, user);
   }
 }

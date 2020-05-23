@@ -1,6 +1,6 @@
 import { Injectable, Inject, HttpException, HttpStatus } from '@nestjs/common';
 import Knex = require('knex');
-import { add, sub, isBefore } from 'date-fns';
+import { add, sub, isBefore, formatISO } from 'date-fns';
 
 import { KNEX_CONNECTION } from '@config/knex/knex.token';
 import { ApontamentoCriar } from '@shared/models/apontamentos/apontamento-criar.model';
@@ -16,6 +16,8 @@ import { usuarioDesejadoNaoProvedorException } from '@shared/exceptions/usuarios
 import { usuarioProvedorIguaisException } from '@shared/exceptions/apontamentos/provedor-usuario-iguais';
 import { usuarioNaoEncontradoException } from '@shared/exceptions/usuarios/usuario-nao-encontrado';
 import { mudarApontamentoParaOutroUsuarioExpection } from '@shared/exceptions/apontamentos/mudar-para-outro-usuario';
+import { bodyVazioException } from '@shared/exceptions/request/body-vazio';
+import { apontamentoReturningArray } from '@shared/models/apontamentos/returning-array';
 
 @Injectable()
 export class ApontamentosService {
@@ -23,6 +25,14 @@ export class ApontamentosService {
     @Inject(KNEX_CONNECTION) private readonly knex: Knex,
     private readonly usuariosService: UsuariosService,
   ) {}
+
+  private async encontarApontamentoPeloId(id: number) {
+    const [apontamento] = (await this.knex('apontamentos')
+      .where({ id })
+      .select(apontamentoReturningArray)) as ApontamentoModel[];
+
+    return apontamento;
+  }
 
   private async apontamentoJaMarcadoDiaEHora(
     data: Date,
@@ -46,7 +56,31 @@ export class ApontamentosService {
     return isBefore(new Date(data), Date.now());
   }
 
+  private async inativarApontamento(id: number) {
+    const dataAtual = formatISO(new Date());
+
+    const [apontamentoCancelado] = (await this.knex('apontamentos')
+      .where({ id })
+      .update({ canceled_at: dataAtual })
+      .returning(apontamentoReturningArray)) as ApontamentoModel[];
+
+    return apontamentoCancelado;
+  }
+
+  private async ativarApontamento(id: number) {
+    const [apontamento] = (await this.knex('apontamentos')
+      .where({ id })
+      .update({ canceled_at: null })
+      .returning(apontamentoReturningArray)) as ApontamentoModel[];
+
+    return apontamento;
+  }
+
   async criar(dados: ApontamentoCriar, user: string) {
+    if (Object.keys(dados).length === 0) {
+      throw bodyVazioException();
+    }
+
     const [provedor] = (await this.knex('usuarios')
       // eslint-disable-next-line @typescript-eslint/camelcase
       .where({ id: dados.provedor_id, is_provider: true })
@@ -81,7 +115,6 @@ export class ApontamentosService {
 
       return apontamento;
     } catch (error) {
-      console.log(error);
       throw new HttpException(error, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
@@ -94,19 +127,11 @@ export class ApontamentosService {
     const { data, provedor_id, user_id } = dados;
 
     if (Object.keys(dados).length === 0) {
-      throw new HttpException(
-        { error: 'Não foram informados dados para alteração.' },
-        HttpStatus.BAD_REQUEST,
-      );
+      throw bodyVazioException();
     }
 
     /* Valida se o apontamento que se deseja alterar existe. */
-    const [apontamento] = (await this.knex('apontamentos')
-      .where({ id })
-      .select('id', 'provedor_id', 'user_id', 'canceled_at', 'data')) as Pick<
-      ApontamentoModel,
-      'id' | 'provedor_id' | 'user_id' | 'canceled_at' | 'data'
-    >[];
+    const apontamento = await this.encontarApontamentoPeloId(id);
 
     if (!apontamento) {
       throw apontamentoNaoEncontradoException();
@@ -174,6 +199,32 @@ export class ApontamentosService {
     } catch (error) {
       throw new HttpException(
         { error: error.hint },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async ativarInativarApontamento(id: number, reqId: number) {
+    const apontamento = await this.encontarApontamentoPeloId(id);
+
+    if (!apontamento) {
+      throw apontamentoNaoEncontradoException();
+    }
+    const { canceled_at, data } = apontamento;
+
+    if (isBefore(data, new Date())) {
+      throw dataApontamentoMenorExpection();
+    }
+
+    try {
+      if (!canceled_at) {
+        return this.inativarApontamento(id);
+      } else {
+        return this.ativarApontamento(id);
+      }
+    } catch (error) {
+      throw new HttpException(
+        { error: error },
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
