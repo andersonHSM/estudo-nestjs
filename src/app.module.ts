@@ -12,6 +12,7 @@ import { AuthModule } from './app/features/auth/auth.module';
 import { JwtMiddleware } from '@shared/middlewares/jwt.middleware';
 import { JwtModule } from '@nestjs/jwt';
 import { AvatarModule } from '@common/avatar/avatar.module';
+import { ApontamentosModule } from './app/features/apontamentos/apontamentos.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { AvatarModule } from '@common/avatar/avatar.module';
       signOptions: { expiresIn: process.env.JWT_EXPIRE_TIME },
     }),
     AvatarModule,
+    ApontamentosModule,
   ],
   controllers: [AppController],
   providers: [AppService],
