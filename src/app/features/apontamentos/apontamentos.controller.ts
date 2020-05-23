@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Req, Patch, Param } from '@nestjs/common';
+import { Controller, Post, Body, Req, Patch, Param, Get } from '@nestjs/common';
 import { Request } from 'express';
 
 import { ApontamentoCriar } from '@shared/models/apontamentos/apontamento-criar.model';
@@ -9,6 +9,13 @@ import { ApontamentoEditar } from '@shared/models/apontamentos/apontamento-edita
 @Controller('apontamentos')
 export class ApontamentosController {
   constructor(private readonly apontamentosService: ApontamentosService) {}
+
+  @Get()
+  listar(@Req() req: Request) {
+    const reqId = req.user as number;
+
+    return this.apontamentosService.listarApontamentos(reqId);
+  }
 
   @Post()
   async criarApontamento(@Body() body: ApontamentoCriar, @Req() req: Request) {

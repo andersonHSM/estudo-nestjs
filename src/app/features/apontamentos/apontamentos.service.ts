@@ -8,7 +8,7 @@ import { ApontamentoEditar } from '@shared/models/apontamentos/apontamento-edita
 import { horarioOcupadoException } from '@shared/exceptions/apontamentos/horario-ocupado';
 import { dataApontamentoMenorExpection } from '@shared/exceptions/apontamentos/data-apontamento-menor';
 import { apontamentoNaoEncontradoException } from '@shared/exceptions/apontamentos/apontamento-nao-encontrado';
-import { ApontamentoModel } from '@shared/models/apontamentos/apontamento.model';
+import { ApontamentoModel } from '@shared/knex/models/apontamentos/apontamento.model';
 import { alteracaoProibidaParaUsuarioDiferenteException } from '@shared/exceptions/apontamentos/alteracao-proibida-usuario';
 import { UsuariosService } from '../usuarios/usuarios.service';
 import { alteracaoProibidaParaProvedorDiferenteException } from '@shared/exceptions/apontamentos/alteracao-proibida-provedor';
@@ -17,7 +17,8 @@ import { usuarioProvedorIguaisException } from '@shared/exceptions/apontamentos/
 import { usuarioNaoEncontradoException } from '@shared/exceptions/usuarios/usuario-nao-encontrado';
 import { mudarApontamentoParaOutroUsuarioExpection } from '@shared/exceptions/apontamentos/mudar-para-outro-usuario';
 import { bodyVazioException } from '@shared/exceptions/request/body-vazio';
-import { apontamentoReturningArray } from '@shared/models/apontamentos/returning-array';
+import { apontamentoReturningArray } from '@shared/knex/models/apontamentos/returning-array';
+import { usuarioReturningArray } from '@shared/knex/models/usuarios/returning-array';
 
 @Injectable()
 export class ApontamentosService {
@@ -74,6 +75,32 @@ export class ApontamentosService {
       .returning(apontamentoReturningArray)) as ApontamentoModel[];
 
     return apontamento;
+  }
+
+  async listarApontamentos(reqId: number) {
+    const usuario = await this.usuariosService.findUserById(reqId);
+    const { is_provider, id } = usuario;
+
+    if (!is_provider) {
+      return await this.knex
+        .select(...apontamentoReturningArray)
+        .from('apontamentos')
+        .where({ user_id: id, canceled_at: null })
+        .whereBetween('data', [
+          formatISO(new Date()),
+          add(new Date(), { years: 1 }),
+        ])
+        .orderBy('data', 'asc');
+    } else {
+      return await this.knex
+        .select(...apontamentoReturningArray)
+        .from('apontamentos')
+        .where({ provedor_id: id, canceled_at: null })
+        .whereBetween('data', [
+          formatISO(new Date()),
+          add(new Date(), { years: 1 }),
+        ]);
+    }
   }
 
   async criar(dados: ApontamentoCriar, user: string) {
