@@ -2,10 +2,14 @@ import { Injectable, Inject, HttpException, HttpStatus } from '@nestjs/common';
 import * as Knex from 'knex';
 import * as Joi from '@hapi/joi';
 import { compare, hash } from 'bcrypt';
+import { add, setHours, startOfHour, getHours } from 'date-fns';
 
 import { KNEX_CONNECTION } from '@config/knex/knex.token';
 
-import { UserCreate } from '@shared/models/users/user-create.models';
+import {
+  UserCreate,
+  ProvedorInfo,
+} from '@shared/models/users/user-create.models';
 import { UserInfoReturn } from '@shared/models/users/user-info-return.model';
 import { UserPatch } from '@shared/models/users/user-patch.model';
 import { UsuarioModel } from '@shared/knex/models/usuarios/usuario.model';
@@ -43,10 +47,12 @@ export class UsuariosService {
   }
 
   async findUserByEmail(email: string): Promise<{ id: number }[]> {
-    return await this.knex('usuarios')
+    const [queryResult] = await this.knex('usuarios')
       .select('id')
       .where({ email })
       .limit(1);
+
+    return queryResult;
   }
 
   private async validarSenha(id: number, password: string): Promise<boolean> {
@@ -71,9 +77,90 @@ export class UsuariosService {
       password: Joi.string().required(),
       email: Joi.string().required(),
       is_provider: Joi.boolean(),
+      provedor_info: Joi.object(),
     });
 
     return await schema.validateAsync(dados);
+  }
+
+  private async cadastrarHorariosProvedor(info: ProvedorInfo) {
+    const [horaInicio] = info.horario_inicio.split(':');
+    const [horaFim] = info.horario_fim.split(':');
+    const [horaInicioIntervalo] = info.inicio_intervalo.split(':');
+    const [horaFimIntervalo] = info.fim_intervalo.split(':');
+
+    const horasAtendimento =
+      parseInt(horaInicioIntervalo) -
+      parseInt(horaInicio) +
+      parseInt(horaFim) -
+      parseInt(horaFimIntervalo);
+
+    const conversoresParaSegundos = {
+      minutes: (minutos: number) => minutos * 60,
+      hours: (horas: number) => horas * 60 * 60,
+    };
+
+    const {
+      tempo: tempoApontamento,
+      unidade: unidadeApontamento,
+    } = info.duracao_media_apontamento;
+
+    const segundosPorAtendimento = conversoresParaSegundos[unidadeApontamento](
+      tempoApontamento,
+    );
+    const segundosTotalDeAtendimento = conversoresParaSegundos['hours'](
+      horasAtendimento,
+    );
+    const totalAtendimentosDiarios =
+      segundosTotalDeAtendimento / segundosPorAtendimento;
+
+    const montarAgenda = (
+      horaInicio: number,
+      horaInicioIntervalo: number,
+      horaFimIntervalo: number,
+      horaFim: number,
+      tempo: number,
+      unidade: string,
+    ) => {
+      const adding = {};
+      adding[unidade] = tempo;
+
+      let horario = startOfHour(setHours(new Date(), +horaInicio));
+
+      let horariosArray = [];
+
+      let horaAtual = horaInicio;
+
+      while (horaAtual <= horaFim) {
+        const horaFormatada = horario.toLocaleTimeString();
+
+        let [hora] = horaFormatada.split(':');
+        if (+hora === horaInicioIntervalo) {
+          horario = setHours(horario, horaFimIntervalo);
+        }
+
+        horario = add(horario, adding);
+        horariosArray = horariosArray.concat(horaFormatada);
+
+        horaAtual++;
+      }
+
+      console.log(horariosArray);
+
+      // for (let index = 0; index < quantidade; index++) {
+      //   let horario
+      //   horario = add(horario, { ...(adding as Duration) });
+      // }
+    };
+
+    montarAgenda(
+      +horaInicio,
+      +horaInicioIntervalo,
+      +horaFimIntervalo,
+      +horaFim,
+      info.duracao_media_apontamento.tempo,
+      info.duracao_media_apontamento.unidade,
+    );
   }
 
   async insertUser(dados: UserCreate): Promise<UserInfoReturn[]> {
@@ -88,12 +175,18 @@ export class UsuariosService {
     const password_hash = await this.gerarPasswordHash(password);
 
     if (await this.findUserByEmail(dadosIserir.email)) {
+      console.log(await this.findUserByEmail(dadosIserir.email));
       throw usuarioJaExisteException();
     }
 
-    return await this.knex('usuarios')
-      .insert({ ...dadosIserir, password_hash })
-      .returning(['id', 'nome', 'sobrenome', 'email', 'is_provider']);
+    if (dados.is_provider) {
+      await this.cadastrarHorariosProvedor(dados.provedor_info);
+    }
+
+    return [null];
+    // return await this.knex('usuarios')
+    //   .insert({ ...dadosIserir, password_hash })
+    //   .returning(['id', 'nome', 'sobrenome', 'email', 'is_provider']);
   }
 
   async updateUser(paramId: string, reqId: string, dados: UserPatch) {

@@ -4,4 +4,16 @@ export interface UserCreate {
   password?: string;
   email: string;
   is_provider?: boolean;
+  provedor_info?: ProvedorInfo;
+}
+
+export interface ProvedorInfo {
+  horario_inicio: string;
+  horario_fim: string;
+  inicio_intervalo: string;
+  fim_intervalo: string;
+  duracao_media_apontamento: {
+    unidade?: string;
+    tempo?: number;
+  };
 }
