@@ -119,6 +119,7 @@ export class UsuariosService {
       horaInicioIntervalo: number,
       horaFimIntervalo: number,
       horaFim: number,
+      totalApontamentos: number,
       tempo: number,
       unidade: string,
     ) => {
@@ -131,7 +132,9 @@ export class UsuariosService {
 
       let horaAtual = horaInicio;
 
-      while (horaAtual <= horaFim) {
+      let quantidadeApontamentos = 0;
+
+      while (quantidadeApontamentos < totalApontamentos) {
         const horaFormatada = horario.toLocaleTimeString();
 
         let [hora] = horaFormatada.split(':');
@@ -142,7 +145,7 @@ export class UsuariosService {
         horario = add(horario, adding);
         horariosArray = horariosArray.concat(horaFormatada);
 
-        horaAtual++;
+        quantidadeApontamentos++;
       }
 
       console.log(horariosArray);
@@ -158,6 +161,7 @@ export class UsuariosService {
       +horaInicioIntervalo,
       +horaFimIntervalo,
       +horaFim,
+      totalAtendimentosDiarios,
       info.duracao_media_apontamento.tempo,
       info.duracao_media_apontamento.unidade,
     );
