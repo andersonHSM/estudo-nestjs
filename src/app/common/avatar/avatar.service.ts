@@ -7,6 +7,15 @@ import { MulterFileFields } from '@shared/models/files/multer-file.model';
 export class AvatarService {
   constructor(@Inject(KNEX_CONNECTION) private knex: Knex) {}
 
+  async acharAvatarPeloId(id: number) {
+    const [retornoQuery] = (await this.knex
+      .select('id')
+      .from('arquivos')
+      .where({ id })) as { id: number }[];
+
+    return retornoQuery;
+  }
+
   async create(file: MulterFileFields) {
     const { filename, path } = file;
     try {

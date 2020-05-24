@@ -4,4 +4,5 @@ export interface UsuarioModel {
   sobrenome?: string;
   email?: string;
   is_provider?: boolean;
+  password_hash?: string;
 }
