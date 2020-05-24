@@ -1,6 +1,7 @@
 import { Injectable, Inject, HttpException, HttpStatus } from '@nestjs/common';
 import * as Knex from 'knex';
-import { compare } from 'bcrypt';
+import * as Joi from '@hapi/joi';
+import { compare, hash } from 'bcrypt';
 
 import { KNEX_CONNECTION } from '@config/knex/knex.token';
 
@@ -15,6 +16,8 @@ import { credenciaisInvalidException } from '@shared/exceptions/usuarios/credenc
 import { usuarioNaoEncontradoException } from '@shared/exceptions/usuarios/usuario-nao-encontrado';
 import { AvatarService } from '@common/avatar/avatar.service';
 import { avatarNaoEncontradoException } from '@shared/exceptions/arquivos/avatar-nao-encontrado.exception';
+import { dadosCriacaoInvalidosException } from '@shared/exceptions/usuarios/dados-criacao-invalidos.exception';
+import { usuarioJaExisteException } from '@shared/exceptions/usuarios/usuario-ja-existe.exception';
 
 @Injectable()
 export class UsuariosService {
@@ -46,7 +49,7 @@ export class UsuariosService {
       .limit(1);
   }
 
-  async validarSenha(id: number, password: string): Promise<boolean> {
+  private async validarSenha(id: number, password: string): Promise<boolean> {
     const [resultadoQuery] = (await this.knex
       .from<UsuarioModel>('usuarios')
       .select('password_hash')
@@ -57,9 +60,39 @@ export class UsuariosService {
     return senhasBatem;
   }
 
-  async insertUser(data: UserCreate): Promise<UserInfoReturn[]> {
+  private async gerarPasswordHash(password: string): Promise<string> {
+    return await hash(password, 10);
+  }
+
+  private async validarDadosInserirUsuario(dados: any) {
+    const schema = Joi.object({
+      nome: Joi.string().required(),
+      sobrenome: Joi.string().required(),
+      password: Joi.string().required(),
+      email: Joi.string().required(),
+      is_provider: Joi.boolean(),
+    });
+
+    return await schema.validateAsync(dados);
+  }
+
+  async insertUser(dados: UserCreate): Promise<UserInfoReturn[]> {
+    try {
+      await this.validarDadosInserirUsuario(dados);
+    } catch (error) {
+      throw dadosCriacaoInvalidosException();
+    }
+
+    const { password, ...dadosIserir } = dados;
+
+    const password_hash = await this.gerarPasswordHash(password);
+
+    if (await this.findUserByEmail(dadosIserir.email)) {
+      throw usuarioJaExisteException();
+    }
+
     return await this.knex('usuarios')
-      .insert(data)
+      .insert({ ...dadosIserir, password_hash })
       .returning(['id', 'nome', 'sobrenome', 'email', 'is_provider']);
   }
 

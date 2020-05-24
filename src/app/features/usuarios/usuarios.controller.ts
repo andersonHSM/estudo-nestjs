@@ -23,23 +23,20 @@ export class UsuariosController {
 
   @Post()
   async insertUser(@Body() body: UserCreate, @Res() res: Response) {
-    // eslint-disable-next-line @typescript-eslint/camelcase
-    const { email, sobrenome, nome, password, is_provider } = body;
-    const [existingUser] = await this.usuariosService.findUserByEmail(email);
+    // const { email, sobrenome, nome, password, is_provider } = body;
+    // const [existingUser] = await this.usuariosService.findUserByEmail(email);
 
-    if (existingUser) {
-      throw new HttpException(
-        { error: 'Usuário já cadastrado!' },
-        HttpStatus.BAD_REQUEST,
-      );
-    }
+    // if (existingUser) {
+    //   throw new HttpException(
+    //     { error: 'Usuário já cadastrado!' },
+    //     HttpStatus.BAD_REQUEST,
+    //   );
+    // }
 
-    // eslint-disable-next-line @typescript-eslint/camelcase
-    const password_hash = await hash(password, 10);
+    // const password_hash = await hash(password, 10);
 
-    // eslint-disable-next-line @typescript-eslint/camelcase
-    const data = { password_hash, email, sobrenome, nome, is_provider };
-    const [user] = await this.usuariosService.insertUser(data);
+    // const data = { password_hash, email, sobrenome, nome, is_provider };
+    const [user] = await this.usuariosService.insertUser(body);
 
     return res.status(200).json(user);
   }
@@ -49,6 +46,7 @@ export class UsuariosController {
     @Body() body: UserPatch,
     @Param() params: { id: string },
     @Req() req: Request,
+    @Res() res: Response,
   ) {
     const { id: paramId } = params;
     const { user: reqId } = req;
@@ -59,6 +57,6 @@ export class UsuariosController {
       body,
     );
 
-    return updatedUser;
+    return res.status(200).json(updatedUser);
   }
 }
