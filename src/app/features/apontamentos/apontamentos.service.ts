@@ -29,7 +29,7 @@ export class ApontamentosService {
   ) {}
 
   private async encontarApontamentoPeloId(id: number) {
-    const [apontamento] = (await this.knex('apontamentos')
+    const [apontamento] = (await this.knex(TabelasSistema.APONTAMENTOS)
       .where({ id })
       .select(apontamentoReturningArray)) as ApontamentoModel[];
 
@@ -43,7 +43,7 @@ export class ApontamentosService {
     const horaAnterior = sub(new Date(data), { minutes: 59 });
     const proximaHora = add(new Date(data), { minutes: 59 });
 
-    const [apontamentoJaMarcado] = await this.knex('apontamentos')
+    const [apontamentoJaMarcado] = await this.knex(TabelasSistema.APONTAMENTOS)
       .whereBetween('data', [horaAnterior, proximaHora])
       // eslint-disable-next-line @typescript-eslint/camelcase
       .where({ provedor_id: provedor })
@@ -61,7 +61,7 @@ export class ApontamentosService {
   private async inativarApontamento(id: number) {
     const dataAtual = formatISO(new Date());
 
-    const [apontamentoCancelado] = (await this.knex('apontamentos')
+    const [apontamentoCancelado] = (await this.knex(TabelasSistema.APONTAMENTOS)
       .where({ id })
       .update({ canceled_at: dataAtual })
       .returning(apontamentoReturningArray)) as ApontamentoModel[];
@@ -70,7 +70,7 @@ export class ApontamentosService {
   }
 
   private async ativarApontamento(id: number) {
-    const [apontamento] = (await this.knex('apontamentos')
+    const [apontamento] = (await this.knex(TabelasSistema.APONTAMENTOS)
       .where({ id })
       .update({ canceled_at: null })
       .returning(apontamentoReturningArray)) as ApontamentoModel[];
@@ -109,7 +109,7 @@ export class ApontamentosService {
     }
 
     try {
-      const [apontamento] = await this.knex('apontamentos')
+      const [apontamento] = await this.knex(TabelasSistema.APONTAMENTOS)
         // eslint-disable-next-line @typescript-eslint/camelcase
         .insert({ ...dados, user_id: user })
         .returning(['id', 'data', 'provedor_id', 'user_id']);
@@ -127,7 +127,7 @@ export class ApontamentosService {
     if (!is_provider) {
       return await this.knex
         .select(...apontamentoReturningArray)
-        .from('apontamentos')
+        .from(TabelasSistema.APONTAMENTOS)
         .where({ user_id: id, canceled_at: null })
         .whereBetween('data', [
           formatISO(new Date()),
@@ -137,7 +137,7 @@ export class ApontamentosService {
     } else {
       return await this.knex
         .select(...apontamentoReturningArray)
-        .from('apontamentos')
+        .from(TabelasSistema.APONTAMENTOS)
         .where({ provedor_id: id, canceled_at: null })
         .whereBetween('data', [
           formatISO(new Date()),
@@ -209,7 +209,7 @@ export class ApontamentosService {
     }
 
     try {
-      const [novoApontamento] = (await this.knex('apontamentos')
+      const [novoApontamento] = (await this.knex(TabelasSistema.APONTAMENTOS)
         .update(dados)
         .returning([
           'id',

@@ -2,6 +2,7 @@ import { Injectable, Inject, HttpException, HttpStatus } from '@nestjs/common';
 import { KNEX_CONNECTION } from '@config/knex/knex.token';
 import Knex = require('knex');
 import { MulterFileFields } from '@shared/models/files/multer-file.model';
+import { TabelasSistema } from '@shared/knex/tables.enum';
 
 @Injectable()
 export class AvatarService {
@@ -10,7 +11,7 @@ export class AvatarService {
   async acharAvatarPeloId(id: number) {
     const [retornoQuery] = (await this.knex
       .select('id')
-      .from('arquivos')
+      .from(TabelasSistema.ARQUIVOS)
       .where({ id })) as { id: number }[];
 
     return retornoQuery;
@@ -19,7 +20,7 @@ export class AvatarService {
   async create(file: MulterFileFields) {
     const { filename, path } = file;
     try {
-      const file = await this.knex('arquivos')
+      const file = await this.knex(TabelasSistema.ARQUIVOS)
         .insert({ name: filename, path })
         .returning(['id', 'name', 'path']);
 

@@ -27,7 +27,7 @@ export class UsuariosController {
     const { id: paramId } = params;
     const { user: reqId } = req;
 
-    const [updatedUser] = await this.usuariosService.updateUser(
+    const updatedUser = await this.usuariosService.updateUser(
       paramId,
       reqId.toString(),
       body,

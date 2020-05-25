@@ -8,8 +8,8 @@ export interface UserCreate {
 }
 
 export interface ProvedorInfo {
-  horario_inicio: string;
-  horario_fim: string;
-  inicio_intervalo: string;
-  fim_intervalo: string;
+  horario_inicio?: string;
+  horario_fim?: string;
+  inicio_intervalo?: string;
+  fim_intervalo?: string;
 }

@@ -1,5 +1,8 @@
 export interface AgendaModel {
   id?: number;
   provedor_id?: number;
-  horario: Date;
+  horario_inicio?: string;
+  horario_fim?: string;
+  inicio_intervalo?: string;
+  fim_intervalo?: string;
 }

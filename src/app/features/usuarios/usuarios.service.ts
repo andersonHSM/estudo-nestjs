@@ -22,6 +22,9 @@ import { AvatarService } from '@common/avatar/avatar.service';
 import { avatarNaoEncontradoException } from '@shared/exceptions/arquivos/avatar-nao-encontrado.exception';
 import { dadosCriacaoInvalidosException } from '@shared/exceptions/usuarios/dados-criacao-invalidos.exception';
 import { usuarioJaExisteException } from '@shared/exceptions/usuarios/usuario-ja-existe.exception';
+import { TabelasSistema } from '@shared/knex/tables.enum';
+import { AgendaModel } from '@shared/knex/models/agenda/agenda.model';
+import { provedorInfoInvalidoException } from '@shared/exceptions/usuarios/provedor-info-invalido.exception';
 
 @Injectable()
 export class UsuariosService {
@@ -30,7 +33,7 @@ export class UsuariosService {
     private readonly avatarService: AvatarService,
   ) {}
   async isProvider(id: number): Promise<boolean> {
-    const [user] = (await this.knex('usuarios')
+    const [user] = (await this.knex(TabelasSistema.USUARIOS)
       .where({ id, is_provider: true })
       .returning('id')) as { id: number }[];
 
@@ -40,14 +43,14 @@ export class UsuariosService {
   async findUserById(id: number): Promise<UsuarioModel> {
     const [user] = (await this.knex
       .select(...usuarioReturningArray)
-      .from('usuarios')
+      .from(TabelasSistema.USUARIOS)
       .where({ id })) as UsuarioModel[];
 
     return user;
   }
 
-  async findUserByEmail(email: string): Promise<{ id: number }[]> {
-    const [queryResult] = await this.knex('usuarios')
+  async findUserByEmail(email: string): Promise<{ id: number }> {
+    const [queryResult] = await this.knex(TabelasSistema.USUARIOS)
       .select('id')
       .where({ email })
       .limit(1);
@@ -70,7 +73,7 @@ export class UsuariosService {
     return await hash(password, 10);
   }
 
-  private async validarDadosInserirUsuario(dados: any) {
+  private async validarDadosInserirUsuario(dados: any): Promise<boolean> {
     const schema = Joi.object({
       nome: Joi.string().required(),
       sobrenome: Joi.string().required(),
@@ -80,15 +83,40 @@ export class UsuariosService {
       provedor_info: Joi.object(),
     });
 
-    return await schema.validateAsync(dados);
+    try {
+      await schema.validateAsync(dados);
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  private async validarEstruturaProvedorInfo(dados: ProvedorInfo) {
+    const horaRegex = /^(\d{2}:){2}\d{2}$/;
+    const provedorInfoSchema = Joi.object({
+      horario_inicio: Joi.string().regex(horaRegex),
+      horario_fim: Joi.string().regex(horaRegex),
+      inicio_intervalo: Joi.string().regex(horaRegex),
+      fim_intervalo: Joi.string().regex(horaRegex),
+    });
+
+    try {
+      await provedorInfoSchema.validateAsync(dados);
+      return true;
+    } catch (error) {
+      return false;
+    }
   }
 
   private async cadastrarHorariosProvedor(
     info: ProvedorInfo,
     provedor_id: number,
   ) {
-    console.log({ ...info, provedor_id });
-    const [queryReturn] = await this.knex('horarios_provedor')
+    if (!(await this.validarEstruturaProvedorInfo(info))) {
+      throw provedorInfoInvalidoException();
+    }
+
+    const [queryReturn] = await this.knex(TabelasSistema.HORARIOS_PROVEDOR)
       .insert({
         ...info,
         provedor_id,
@@ -98,10 +126,35 @@ export class UsuariosService {
     return queryReturn;
   }
 
+  private async atualizarHorariosProvedor(
+    dados: ProvedorInfo,
+    provedor_id: number,
+  ) {
+    const schemaValido = await this.validarEstruturaProvedorInfo(dados);
+    if (!schemaValido) {
+      throw provedorInfoInvalidoException();
+    }
+
+    const [retornoQueryHorariosProvedor] = (await this.knex(
+      TabelasSistema.HORARIOS_PROVEDOR,
+    )
+      .where({ provedor_id })
+      .update(dados)
+      .returning([
+        'horario_inicio',
+        'horario_fim',
+        'inicio_intervalo',
+        'fim_intervalo',
+      ])) as Pick<
+      AgendaModel,
+      'horario_fim' | 'horario_inicio' | 'inicio_intervalo' | 'fim_intervalo'
+    >[];
+
+    return retornoQueryHorariosProvedor;
+  }
+
   async insertUser(dados: UserCreate): Promise<UserInfoReturn> {
-    try {
-      await this.validarDadosInserirUsuario(dados);
-    } catch (error) {
+    if (!(await this.validarDadosInserirUsuario(dados))) {
       throw dadosCriacaoInvalidosException();
     }
 
@@ -113,7 +166,7 @@ export class UsuariosService {
       throw usuarioJaExisteException();
     }
 
-    const [user] = (await this.knex('usuarios')
+    const [user] = (await this.knex(TabelasSistema.USUARIOS)
       .insert({ ...dadosIserir, password_hash })
       .returning([
         'id',
@@ -135,7 +188,8 @@ export class UsuariosService {
       throw dadosUpdateUsuarioVazioException();
     }
 
-    if (!(await this.findUserById(+paramId))) {
+    const user = await this.findUserById(+paramId);
+    if (!user) {
       throw usuarioNaoEncontradoException();
     }
 
@@ -148,7 +202,7 @@ export class UsuariosService {
       );
     }
 
-    const { password, ...dadosAlteracao } = dados;
+    const { password, provedor_info, ...dadosAlteracao } = dados;
 
     if (!password) {
       throw senhaNaoInformadaException();
@@ -167,8 +221,27 @@ export class UsuariosService {
       throw avatarNaoEncontradoException();
     }
 
+    let retornoUpdateProvedorInfo: ProvedorInfo;
+    if (provedor_info) {
+      retornoUpdateProvedorInfo = await this.atualizarHorariosProvedor(
+        provedor_info,
+        +paramId,
+      );
+
+      if (!retornoUpdateProvedorInfo) {
+        retornoUpdateProvedorInfo = await this.cadastrarHorariosProvedor(
+          provedor_info,
+          +paramId,
+        );
+      }
+    }
+
+    if (Object.keys(dadosAlteracao).length === 0) {
+      const user = await this.findUserById(+paramId);
+      return { ...user, provedor_info: retornoUpdateProvedorInfo };
+    }
     try {
-      return await this.knex('usuarios')
+      return await this.knex(TabelasSistema.USUARIOS)
         .where({ id: paramId })
         .update(dadosAlteracao)
         .returning([
