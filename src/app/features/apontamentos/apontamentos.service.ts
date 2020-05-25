@@ -1,6 +1,14 @@
 import { Injectable, Inject, HttpException, HttpStatus } from '@nestjs/common';
+
 import Knex = require('knex');
-import { add, sub, isBefore, formatISO } from 'date-fns';
+import {
+  add,
+  isBefore,
+  formatISO,
+  formatRelative,
+  sub,
+  format,
+} from 'date-fns';
 
 import { KNEX_CONNECTION } from '@config/knex/knex.token';
 import { ApontamentoCriar } from '@shared/models/apontamentos/apontamento-criar.model';
@@ -18,7 +26,8 @@ import { usuarioNaoEncontradoException } from '@shared/exceptions/usuarios/usuar
 import { mudarApontamentoParaOutroUsuarioExpection } from '@shared/exceptions/apontamentos/mudar-para-outro-usuario';
 import { bodyVazioException } from '@shared/exceptions/request/body-vazio';
 import { apontamentoReturningArray } from '@shared/knex/models/apontamentos/returning-array';
-import { usuarioReturningArray } from '@shared/knex/models/usuarios/returning-array';
+import { TabelasSistema } from '@shared/knex/tables.enum';
+import { dataFimMenoDataInicioException } from '@shared/exceptions/apontamentos/data-fim-menor-data-inicio.exception';
 
 @Injectable()
 export class ApontamentosService {
@@ -28,7 +37,7 @@ export class ApontamentosService {
   ) {}
 
   private async encontarApontamentoPeloId(id: number) {
-    const [apontamento] = (await this.knex('apontamentos')
+    const [apontamento] = (await this.knex(TabelasSistema.APONTAMENTOS)
       .where({ id })
       .select(apontamentoReturningArray)) as ApontamentoModel[];
 
@@ -36,21 +45,39 @@ export class ApontamentosService {
   }
 
   private async apontamentoJaMarcadoDiaEHora(
-    data: Date,
-    provedor: number,
+    dados: ApontamentoCriar,
   ): Promise<boolean> {
-    const horaAnterior = sub(new Date(data), { minutes: 59 });
-    const proximaHora = add(new Date(data), { minutes: 59 });
+    const { provedor_id, data_inicio, data_fim } = dados;
 
-    const [apontamentoJaMarcado] = await this.knex('apontamentos')
-      .whereBetween('data', [horaAnterior, proximaHora])
-      // eslint-disable-next-line @typescript-eslint/camelcase
-      .where({ provedor_id: provedor })
-      .select('id');
+    const datasChecagem = {
+      inicio: new Date(data_inicio),
+      fim: new Date(data_fim),
+    };
+    try {
+      const [inicioInvalido] = await this.knex
+        .select('id', 'data_inicio')
+        .from(TabelasSistema.APONTAMENTOS)
+        .where({ provedor_id })
+        .whereBetween('data_inicio', [datasChecagem.inicio, datasChecagem.fim])
+        .limit(1);
 
-    if (apontamentoJaMarcado) return true;
+      const [fimInvalido] = await this.knex
+        .select('id', 'data_fim')
+        .from(TabelasSistema.APONTAMENTOS)
+        .where({ provedor_id })
+        .whereBetween('data_fim', [datasChecagem.inicio, datasChecagem.fim])
+        .limit(1);
 
-    return false;
+      return !!inicioInvalido || !!fimInvalido;
+    } catch (error) {
+      throw new HttpException(
+        {
+          error:
+            'Não conseguimos processar sua requisição, por favor, revisar os dados antes de enviar.',
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
   }
 
   private dataMenorQueAtual(data: Date) {
@@ -60,7 +87,7 @@ export class ApontamentosService {
   private async inativarApontamento(id: number) {
     const dataAtual = formatISO(new Date());
 
-    const [apontamentoCancelado] = (await this.knex('apontamentos')
+    const [apontamentoCancelado] = (await this.knex(TabelasSistema.APONTAMENTOS)
       .where({ id })
       .update({ canceled_at: dataAtual })
       .returning(apontamentoReturningArray)) as ApontamentoModel[];
@@ -69,7 +96,7 @@ export class ApontamentosService {
   }
 
   private async ativarApontamento(id: number) {
-    const [apontamento] = (await this.knex('apontamentos')
+    const [apontamento] = (await this.knex(TabelasSistema.APONTAMENTOS)
       .where({ id })
       .update({ canceled_at: null })
       .returning(apontamentoReturningArray)) as ApontamentoModel[];
@@ -77,39 +104,16 @@ export class ApontamentosService {
     return apontamento;
   }
 
-  async listarApontamentos(reqId: number) {
-    const usuario = await this.usuariosService.findUserById(reqId);
-    const { is_provider, id } = usuario;
-
-    if (!is_provider) {
-      return await this.knex
-        .select(...apontamentoReturningArray)
-        .from('apontamentos')
-        .where({ user_id: id, canceled_at: null })
-        .whereBetween('data', [
-          formatISO(new Date()),
-          add(new Date(), { years: 1 }),
-        ])
-        .orderBy('data', 'asc');
-    } else {
-      return await this.knex
-        .select(...apontamentoReturningArray)
-        .from('apontamentos')
-        .where({ provedor_id: id, canceled_at: null })
-        .whereBetween('data', [
-          formatISO(new Date()),
-          add(new Date(), { years: 1 }),
-        ]);
-    }
-  }
-
-  async criar(dados: ApontamentoCriar, user: string) {
+  async criarApontamentoUsuario(
+    dados: ApontamentoCriar,
+    user: number,
+    reqId?: number,
+  ) {
     if (Object.keys(dados).length === 0) {
       throw bodyVazioException();
     }
 
-    const [provedor] = (await this.knex('usuarios')
-      // eslint-disable-next-line @typescript-eslint/camelcase
+    const [provedor] = (await this.knex(TabelasSistema.USUARIOS)
       .where({ id: dados.provedor_id, is_provider: true })
       .select('id')) as { id: number }[];
 
@@ -120,29 +124,64 @@ export class ApontamentosService {
       );
     }
 
-    if (+user === provedor.id) {
+    if (reqId && reqId !== provedor.id && reqId !== user) {
+      throw new HttpException(
+        { error: 'Não é possível criar um apontamento para outro usuário' },
+        HttpStatus.FORBIDDEN,
+      );
+    }
+
+    if (user === provedor.id) {
       throw usuarioProvedorIguaisException();
     }
 
-    if (this.dataMenorQueAtual(dados.data)) {
+    if (isBefore(new Date(dados.data_fim), new Date(dados.data_inicio))) {
+      throw dataFimMenoDataInicioException();
+    }
+
+    if (this.dataMenorQueAtual(dados.data_inicio)) {
       throw dataApontamentoMenorExpection();
     }
 
-    if (
-      await this.apontamentoJaMarcadoDiaEHora(dados.data, dados.provedor_id)
-    ) {
+    if (await this.apontamentoJaMarcadoDiaEHora(dados)) {
       throw horarioOcupadoException();
     }
 
     try {
-      const [apontamento] = await this.knex('apontamentos')
+      const [apontamento] = await this.knex(TabelasSistema.APONTAMENTOS)
         // eslint-disable-next-line @typescript-eslint/camelcase
         .insert({ ...dados, user_id: user })
-        .returning(['id', 'data', 'provedor_id', 'user_id']);
+        .returning(['id', 'data_inicio', 'data_fim', 'provedor_id', 'user_id']);
 
       return apontamento;
     } catch (error) {
       throw new HttpException(error, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  async listarApontamentos(reqId: number) {
+    const usuario = await this.usuariosService.findUserById(reqId);
+    const { is_provider, id } = usuario;
+
+    if (!is_provider) {
+      return await this.knex
+        .select(...apontamentoReturningArray)
+        .from(TabelasSistema.APONTAMENTOS)
+        .where({ user_id: id, canceled_at: null })
+        .whereBetween('data', [
+          formatISO(new Date()),
+          add(new Date(), { years: 1 }),
+        ])
+        .orderBy('data', 'asc');
+    } else {
+      return await this.knex
+        .select(...apontamentoReturningArray)
+        .from(TabelasSistema.APONTAMENTOS)
+        .where({ provedor_id: id, canceled_at: null })
+        .whereBetween('data', [
+          formatISO(new Date()),
+          add(new Date(), { years: 1 }),
+        ]);
     }
   }
 
@@ -151,7 +190,7 @@ export class ApontamentosService {
     dados: ApontamentoEditar,
     reqId: number,
   ) {
-    const { data, provedor_id, user_id } = dados;
+    const { data_inicio, data_fim, provedor_id, user_id } = dados;
 
     if (Object.keys(dados).length === 0) {
       throw bodyVazioException();
@@ -198,28 +237,34 @@ export class ApontamentosService {
     }
 
     /* Verifica se a data, quando existir, é válida. */
-    if (data) {
-      if (await this.apontamentoJaMarcadoDiaEHora(data, provedor_id)) {
+    if (data_inicio && data_fim) {
+      if (await this.apontamentoJaMarcadoDiaEHora(dados)) {
         throw horarioOcupadoException();
       }
 
-      if (this.dataMenorQueAtual(data)) {
+      if (this.dataMenorQueAtual(data_inicio)) {
         throw dataApontamentoMenorExpection();
       }
     }
 
     try {
-      const [novoApontamento] = (await this.knex('apontamentos')
+      const [novoApontamento] = (await this.knex(TabelasSistema.APONTAMENTOS)
         .update(dados)
         .returning([
           'id',
           'provedor_id',
-          'data',
+          'data_incio',
+          'data_fim',
           'user_id',
           'canceled_at',
         ])) as Pick<
         ApontamentoModel,
-        'id' | 'provedor_id' | 'data' | 'user_id' | 'canceled_at'
+        | 'id'
+        | 'provedor_id'
+        | 'data_inicio'
+        | 'data_fim'
+        | 'user_id'
+        | 'canceled_at'
       >[];
 
       return novoApontamento;
@@ -243,7 +288,7 @@ export class ApontamentosService {
       throw apontamentoNaoEncontradoException();
     }
     const { is_provider } = usuario;
-    const { canceled_at, data, provedor_id, user_id } = apontamento;
+    const { canceled_at, data_inicio, provedor_id, user_id } = apontamento;
 
     if (!is_provider && user_id !== reqId) {
       throw alteracaoProibidaParaUsuarioDiferenteException();
@@ -253,7 +298,7 @@ export class ApontamentosService {
       throw alteracaoProibidaParaProvedorDiferenteException();
     }
 
-    if (isBefore(data, new Date())) {
+    if (isBefore(data_inicio, new Date())) {
       throw dataApontamentoMenorExpection();
     }
 

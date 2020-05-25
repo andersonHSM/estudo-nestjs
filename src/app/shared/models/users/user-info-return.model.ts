@@ -1,5 +1,5 @@
 export interface UserInfoReturn {
-  id: string;
+  id: number;
   nome: string;
   sobrenome: string;
   email: string;

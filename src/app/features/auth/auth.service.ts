@@ -9,6 +9,7 @@ import { compare } from 'bcrypt';
 
 import { KNEX_CONNECTION } from '@config/knex/knex.token';
 import { LoginData } from '@shared/models/auth/login.model';
+import { TabelasSistema } from '@shared/knex/tables.enum';
 
 @Injectable()
 export class AuthService {
@@ -27,11 +28,10 @@ export class AuthService {
     try {
       const hashArray: { id: number; password_hash: string }[] = await this.knex
         .select('id', 'password_hash')
-        .from('usuarios')
+        .from(TabelasSistema.USUARIOS)
         .where({ email })
         .limit(1);
 
-      // eslint-disable-next-line @typescript-eslint/camelcase
       const { password_hash } = hashArray[0];
 
       const passwordsMatches = await compare(plainPassword, password_hash);
@@ -40,7 +40,7 @@ export class AuthService {
         throw new Error(authError.error);
       }
 
-      const [userReturn] = await this.usuariosService.findUserByEmail(email);
+      const userReturn = await this.usuariosService.findUserByEmail(email);
 
       return userReturn;
     } catch (error) {

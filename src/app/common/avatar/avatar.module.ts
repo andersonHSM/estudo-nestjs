@@ -5,6 +5,7 @@ import { KnexModule } from '@shared/knex/knex.module';
 
 @Module({
   imports: [KnexModule],
+  exports: [AvatarService],
   controllers: [AvatarController],
   providers: [AvatarService],
 })
