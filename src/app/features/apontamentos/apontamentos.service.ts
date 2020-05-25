@@ -53,22 +53,31 @@ export class ApontamentosService {
       inicio: new Date(data_inicio),
       fim: new Date(data_fim),
     };
+    try {
+      const [inicioInvalido] = await this.knex
+        .select('id', 'data_inicio')
+        .from(TabelasSistema.APONTAMENTOS)
+        .where({ provedor_id })
+        .whereBetween('data_inicio', [datasChecagem.inicio, datasChecagem.fim])
+        .limit(1);
 
-    const [inicioInvalido] = await this.knex
-      .select('id', 'data_inicio')
-      .from(TabelasSistema.APONTAMENTOS)
-      .where({ provedor_id })
-      .whereBetween('data_inicio', [datasChecagem.inicio, datasChecagem.fim])
-      .limit(1);
+      const [fimInvalido] = await this.knex
+        .select('id', 'data_fim')
+        .from(TabelasSistema.APONTAMENTOS)
+        .where({ provedor_id })
+        .whereBetween('data_fim', [datasChecagem.inicio, datasChecagem.fim])
+        .limit(1);
 
-    const [fimInvalido] = await this.knex
-      .select('id', 'data_fim')
-      .from(TabelasSistema.APONTAMENTOS)
-      .where({ provedor_id })
-      .whereBetween('data_fim', [datasChecagem.inicio, datasChecagem.fim])
-      .limit(1);
-
-    return !!inicioInvalido || !!fimInvalido;
+      return !!inicioInvalido || !!fimInvalido;
+    } catch (error) {
+      throw new HttpException(
+        {
+          error:
+            'Não conseguimos processar sua requisição, por favor, revisar os dados antes de enviar.',
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
   }
 
   private dataMenorQueAtual(data: Date) {
