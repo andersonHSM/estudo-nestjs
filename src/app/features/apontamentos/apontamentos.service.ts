@@ -19,6 +19,7 @@ import { mudarApontamentoParaOutroUsuarioExpection } from '@shared/exceptions/ap
 import { bodyVazioException } from '@shared/exceptions/request/body-vazio';
 import { apontamentoReturningArray } from '@shared/knex/models/apontamentos/returning-array';
 import { usuarioReturningArray } from '@shared/knex/models/usuarios/returning-array';
+import { TabelasSistema } from '@shared/knex/tables.enum';
 
 @Injectable()
 export class ApontamentosService {
@@ -77,39 +78,12 @@ export class ApontamentosService {
     return apontamento;
   }
 
-  async listarApontamentos(reqId: number) {
-    const usuario = await this.usuariosService.findUserById(reqId);
-    const { is_provider, id } = usuario;
-
-    if (!is_provider) {
-      return await this.knex
-        .select(...apontamentoReturningArray)
-        .from('apontamentos')
-        .where({ user_id: id, canceled_at: null })
-        .whereBetween('data', [
-          formatISO(new Date()),
-          add(new Date(), { years: 1 }),
-        ])
-        .orderBy('data', 'asc');
-    } else {
-      return await this.knex
-        .select(...apontamentoReturningArray)
-        .from('apontamentos')
-        .where({ provedor_id: id, canceled_at: null })
-        .whereBetween('data', [
-          formatISO(new Date()),
-          add(new Date(), { years: 1 }),
-        ]);
-    }
-  }
-
   async criar(dados: ApontamentoCriar, user: string) {
     if (Object.keys(dados).length === 0) {
       throw bodyVazioException();
     }
 
-    const [provedor] = (await this.knex('usuarios')
-      // eslint-disable-next-line @typescript-eslint/camelcase
+    const [provedor] = (await this.knex(TabelasSistema.USUARIOS)
       .where({ id: dados.provedor_id, is_provider: true })
       .select('id')) as { id: number }[];
 
@@ -143,6 +117,32 @@ export class ApontamentosService {
       return apontamento;
     } catch (error) {
       throw new HttpException(error, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  async listarApontamentos(reqId: number) {
+    const usuario = await this.usuariosService.findUserById(reqId);
+    const { is_provider, id } = usuario;
+
+    if (!is_provider) {
+      return await this.knex
+        .select(...apontamentoReturningArray)
+        .from('apontamentos')
+        .where({ user_id: id, canceled_at: null })
+        .whereBetween('data', [
+          formatISO(new Date()),
+          add(new Date(), { years: 1 }),
+        ])
+        .orderBy('data', 'asc');
+    } else {
+      return await this.knex
+        .select(...apontamentoReturningArray)
+        .from('apontamentos')
+        .where({ provedor_id: id, canceled_at: null })
+        .whereBetween('data', [
+          formatISO(new Date()),
+          add(new Date(), { years: 1 }),
+        ]);
     }
   }
 

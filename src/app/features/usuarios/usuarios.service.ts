@@ -109,9 +109,9 @@ export class UsuariosService {
 
     const password_hash = await this.gerarPasswordHash(password);
 
-    // if (await this.findUserByEmail(dadosIserir.email)) {
-    //   throw usuarioJaExisteException();
-    // }
+    if (await this.findUserByEmail(dadosIserir.email)) {
+      throw usuarioJaExisteException();
+    }
 
     const [user] = (await this.knex('usuarios')
       .insert({ ...dadosIserir, password_hash })
