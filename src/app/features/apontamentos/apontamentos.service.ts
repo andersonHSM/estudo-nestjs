@@ -78,7 +78,11 @@ export class ApontamentosService {
     return apontamento;
   }
 
-  async criar(dados: ApontamentoCriar, user: string) {
+  async criarApontamentoUsuario(
+    dados: ApontamentoCriar,
+    user: number,
+    reqId?: number,
+  ) {
     if (Object.keys(dados).length === 0) {
       throw bodyVazioException();
     }
@@ -94,7 +98,14 @@ export class ApontamentosService {
       );
     }
 
-    if (+user === provedor.id) {
+    if (reqId && reqId !== provedor.id && reqId !== user) {
+      throw new HttpException(
+        { error: 'Não é possível criar um apontamento para outro usuário' },
+        HttpStatus.FORBIDDEN,
+      );
+    }
+
+    if (user === provedor.id) {
       throw usuarioProvedorIguaisException();
     }
 

@@ -21,7 +21,10 @@ export class ApontamentosController {
   async criarApontamento(@Body() body: ApontamentoCriar, @Req() req: Request) {
     const { user } = req;
 
-    return await this.apontamentosService.criar(body, user as string);
+    return await this.apontamentosService.criarApontamentoUsuario(
+      body,
+      user as number,
+    );
   }
 
   @Patch(':id')

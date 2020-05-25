@@ -5,10 +5,14 @@ import { UserCreate } from '@shared/models/users/user-create.models';
 import { UsuariosService } from './usuarios.service';
 
 import { UserPatch } from '@shared/models/users/user-patch.model';
+import { ApontamentosService } from '../apontamentos/apontamentos.service';
 
-@Controller('users')
+@Controller('usuarios')
 export class UsuariosController {
-  constructor(private readonly usuariosService: UsuariosService) {}
+  constructor(
+    private readonly usuariosService: UsuariosService,
+    private readonly apontamentosService: ApontamentosService,
+  ) {}
 
   @Post()
   async insertUser(@Body() body: UserCreate, @Res() res: Response) {
@@ -34,5 +38,22 @@ export class UsuariosController {
     );
 
     return res.status(200).json(updatedUser);
+  }
+
+  @Post(':user_id/apontamentos')
+  async inserirApontamentoUsuario(
+    @Param() param: { user_id: string },
+    @Body() dados,
+    @Req() req: Request,
+  ) {
+    const reqId = +req.user;
+    const user = +param.user_id;
+    const apontamento = await this.apontamentosService.criarApontamentoUsuario(
+      dados,
+      user,
+      reqId,
+    );
+
+    return apontamento;
   }
 }
