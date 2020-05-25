@@ -6,8 +6,26 @@ export async function up(knex: Knex): Promise<any> {
     table
       .integer('provedor_id')
       .references('id')
-      .inTable('usuarios');
-    table.dateTime('horario');
+      .inTable('usuarios')
+      .onDelete('SET NULL');
+    table
+      .string('horario_inicio')
+      .notNullable()
+      .defaultTo('08:00:00');
+    table
+      .string('horario_fim')
+      .notNullable()
+      .defaultTo('18:00:00');
+    table
+      .string('inicio_intervalo')
+      .notNullable()
+      .defaultTo('12:00:00');
+    table
+      .string('fim_intervalo')
+      .notNullable()
+      .defaultTo('14:00:00');
+
+    table.timestamps(true, true);
   });
 }
 

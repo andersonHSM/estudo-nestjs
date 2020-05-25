@@ -12,7 +12,7 @@ export class UsuariosController {
 
   @Post()
   async insertUser(@Body() body: UserCreate, @Res() res: Response) {
-    const [user] = await this.usuariosService.insertUser(body);
+    const user = await this.usuariosService.insertUser(body);
 
     return res.status(200).json(user);
   }

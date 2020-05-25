@@ -12,8 +12,4 @@ export interface ProvedorInfo {
   horario_fim: string;
   inicio_intervalo: string;
   fim_intervalo: string;
-  duracao_media_apontamento: {
-    unidade?: string;
-    tempo?: number;
-  };
 }
