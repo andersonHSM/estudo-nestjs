@@ -9,6 +9,7 @@ import {
   sub,
   format,
 } from 'date-fns';
+import { Request } from 'express';
 
 import { KNEX_CONNECTION } from '@config/knex/knex.token';
 import { ApontamentoCriar } from '@shared/models/apontamentos/apontamento-criar.model';
@@ -28,6 +29,7 @@ import { bodyVazioException } from '@shared/exceptions/request/body-vazio';
 import { apontamentoReturningArray } from '@shared/knex/models/apontamentos/returning-array';
 import { TabelasSistema } from '@shared/knex/tables.enum';
 import { dataFimMenoDataInicioException } from '@shared/exceptions/apontamentos/data-fim-menor-data-inicio.exception';
+import { QueryPaginacaoApontamento } from '@shared/models/apontamentos/query-paginacao-apontamentos.model';
 
 @Injectable()
 export class ApontamentosService {
@@ -35,6 +37,26 @@ export class ApontamentosService {
     @Inject(KNEX_CONNECTION) private readonly knex: Knex,
     private readonly usuariosService: UsuariosService,
   ) {}
+
+  private async listarApontamentosUsuario(
+    requestId: number,
+    userId: number,
+    queryParameters: QueryPaginacaoApontamento,
+  ) {
+    const usuario = await this.usuariosService.findUserById(userId);
+
+    return { usuario };
+  }
+
+  private async listarApontamentosProvedor(
+    requestId: number,
+    userId: number,
+    queryParameters: QueryPaginacaoApontamento,
+  ) {
+    const usuario = await this.usuariosService.findUserById(userId);
+
+    return { usuario };
+  }
 
   private async encontarApontamentoPeloId(id: number) {
     const [apontamento] = (await this.knex(TabelasSistema.APONTAMENTOS)
@@ -159,30 +181,47 @@ export class ApontamentosService {
     }
   }
 
-  async listarApontamentos(reqId: number) {
-    const usuario = await this.usuariosService.findUserById(reqId);
-    const { is_provider, id } = usuario;
+  async listarApontamentos(
+    requestId: number,
+    userId: number,
+    queryParameters: QueryPaginacaoApontamento,
+  ) {
+    const usuario = await this.usuariosService.findUserById(userId);
 
-    if (!is_provider) {
-      return await this.knex
-        .select(...apontamentoReturningArray)
-        .from(TabelasSistema.APONTAMENTOS)
-        .where({ user_id: id, canceled_at: null })
-        .whereBetween('data', [
-          formatISO(new Date()),
-          add(new Date(), { years: 1 }),
-        ])
-        .orderBy('data', 'asc');
-    } else {
-      return await this.knex
-        .select(...apontamentoReturningArray)
-        .from(TabelasSistema.APONTAMENTOS)
-        .where({ provedor_id: id, canceled_at: null })
-        .whereBetween('data', [
-          formatISO(new Date()),
-          add(new Date(), { years: 1 }),
-        ]);
+    if (!usuario) {
+      throw usuarioNaoEncontradoException();
     }
+
+    const { is_provider } = usuario;
+
+    if (is_provider) {
+      // return await this.listarApontamentosProvedor()
+    }
+
+    return usuario;
+
+    // const { is_provider, id } = usuario;
+
+    // if (!is_provider) {
+    //   return await this.knex
+    //     .select(...apontamentoReturningArray)
+    //     .from(TabelasSistema.APONTAMENTOS)
+    //     .where({ user_id: id, canceled_at: null })
+    //     .whereBetween('data', [
+    //       formatISO(new Date()),
+    //       add(new Date(), { years: 1 }),
+    //     ])
+    //     .orderBy('data', 'asc');
+    // } else {
+    //   return await this.knex
+    //     .select(...apontamentoReturningArray)
+    //     .from(TabelasSistema.APONTAMENTOS)
+    //     .where({ provedor_id: id, canceled_at: null })
+    //     .whereBetween('data', [
+    //       formatISO(new Date()),
+    //       add(new Date(), { years: 1 }),
+    //     ]);
+    // }
   }
 
   async atualizarApontamento(

@@ -1,4 +1,15 @@
-import { Body, Controller, Post, Res, Patch, Param, Req } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Post,
+  Res,
+  Patch,
+  Param,
+  Req,
+  Get,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { Response, Request } from 'express';
 
 import { UserCreate } from '@shared/models/users/user-create.models';
@@ -6,6 +17,8 @@ import { UsuariosService } from './usuarios.service';
 
 import { UserPatch } from '@shared/models/users/user-patch.model';
 import { ApontamentosService } from '../apontamentos/apontamentos.service';
+import { QueryPaginacaoApontamento } from '@shared/models/apontamentos/query-paginacao-apontamentos.model';
+import { UsuariosIguaisGuard } from '../apontamentos/guards/usuarios-iguais/usuarios-iguais.guard';
 
 @Controller('usuarios')
 export class UsuariosController {
@@ -40,14 +53,14 @@ export class UsuariosController {
     return res.status(200).json(updatedUser);
   }
 
-  @Post(':user_id/apontamentos')
+  @Post(':userId/apontamentos')
   async inserirApontamentoUsuario(
-    @Param() param: { user_id: string },
+    @Param() param: { userId: string },
     @Body() dados,
     @Req() req: Request,
   ) {
     const reqId = +req.user;
-    const user = +param.user_id;
+    const user = +param.userId;
     const apontamento = await this.apontamentosService.criarApontamentoUsuario(
       dados,
       user,
@@ -55,5 +68,23 @@ export class UsuariosController {
     );
 
     return apontamento;
+  }
+
+  @UseGuards(UsuariosIguaisGuard)
+  @Get(':userId/apontamentos')
+  async listarApontamentosUsuario(
+    @Req() req: Request,
+    @Param() param: { userId: string },
+    @Query() query: QueryPaginacaoApontamento,
+  ) {
+    const requestId = +req.user;
+    const { userId } = param;
+
+    console.log(requestId);
+    return await this.apontamentosService.listarApontamentos(
+      requestId,
+      +userId,
+      query,
+    );
   }
 }
