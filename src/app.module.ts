@@ -13,10 +13,12 @@ import { JwtMiddleware } from '@shared/middlewares/jwt/jwt.middleware';
 import { JwtModule } from '@nestjs/jwt';
 import { AvatarModule } from '@common/avatar/avatar.module';
 import { ApontamentosModule } from './app/features/apontamentos/apontamentos.module';
+import { ProvedoresModule } from '@features/provedores/provedores.module';
 
 @Module({
   imports: [
     UsuariosModule,
+    ProvedoresModule,
     AuthModule,
     JwtModule.register({
       secret: process.env.JWT_SECRET,

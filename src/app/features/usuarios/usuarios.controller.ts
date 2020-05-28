@@ -21,6 +21,8 @@ import { QueryPaginacaoApontamento } from '@shared/models/apontamentos/query-pag
 import { UsuariosIguaisGuard } from '@shared/guards/usuarios-iguais/usuarios-iguais.guard';
 import { UsuarioRequestExistenteGuard } from '@shared/guards/usuario-request-existente/usuario-request-existente.guard';
 import { VisualizarApontamentosUsuarioGuard } from '@shared/guards/visualizar-apontamentos-usuario/visualizar-apontamentos-usuario.guard';
+import { UsuariosParamsModel } from '@shared/models/users/usuarios-params.model';
+import { UsuariosParams } from '@shared/routes-helpers/usuarios-params.enum';
 
 @Controller('usuarios')
 export class UsuariosController {
@@ -55,9 +57,9 @@ export class UsuariosController {
     return res.status(200).json(updatedUser);
   }
 
-  @Post(':userId/apontamentos')
+  @Post(`:${UsuariosParams.USER_ID}/apontamentos`)
   async inserirApontamentoUsuario(
-    @Param() param: { userId: string },
+    @Param() param: UsuariosParamsModel,
     @Body() dados,
     @Req() req: Request,
   ) {
@@ -73,13 +75,16 @@ export class UsuariosController {
   }
 
   @UseGuards(VisualizarApontamentosUsuarioGuard)
-  @Get(':userId/apontamentos/')
+  @Get(`:${UsuariosParams.USER_ID}/apontamentos`)
   async listarApontamentosUsuario(
-    @Param() param: { userId: string },
+    @Param() param: UsuariosParamsModel,
     @Query() query: QueryPaginacaoApontamento,
   ) {
     const { userId } = param;
 
-    return await this.apontamentosService.listarApontamentos(+userId, query);
+    return await this.apontamentosService.listarApontamentosUsuario(
+      +userId,
+      query,
+    );
   }
 }

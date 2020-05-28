@@ -167,7 +167,7 @@ export class ApontamentosService {
     return razao === total ? (total = razao) : (total = Math.floor(razao) + 1);
   }
 
-  async listarApontamentos(
+  async listarApontamentosUsuario(
     user_id: number,
     queryParameters: QueryPaginacaoApontamento,
   ) {
@@ -202,7 +202,7 @@ export class ApontamentosService {
     const total = parseInt(contagemApontamentos.total);
 
     /* Montagem do objeto de retorno com as informações da paginação */
-    const retorno = {
+    const retornoPaginado = {
       paginacao: {
         paginas: this.totalPaginas(limite, total),
         total: total,
@@ -211,7 +211,54 @@ export class ApontamentosService {
       registros: apontamentos,
     };
 
-    return retorno;
+    return retornoPaginado;
+  }
+
+  async listarApontamentosProvedor(
+    provedor_id: number,
+    queryParameters: QueryPaginacaoApontamento,
+  ) {
+    const limite = parseInt(queryParameters.limite, 10) || 10;
+    const pg = parseInt(queryParameters.pg, 10) || 1;
+
+    if (limite === 0) {
+      throw new HttpException(
+        { error: 'Quantidade de items por página não pode ser igual a zero.' },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    /* Realiza a contagem e posteriormente a consulta às
+    informações da tabela e resolve em uma única promise */
+    const querysPromises = await Promise.all([
+      this.knex(TabelasSistema.APONTAMENTOS)
+        .count({ total: 'id' })
+        .where({ canceled_at: null, provedor_id })
+        .first(),
+      this.knex
+        .select('id', 'user_id', 'provedor_id', 'data_inicio', 'data_fim')
+        .from(TabelasSistema.APONTAMENTOS)
+        .where({ provedor_id, canceled_at: null })
+        .orderBy('data_inicio')
+        .limit(limite)
+        .offset((pg - 1) * limite),
+    ]);
+
+    const [contagemApontamentos, apontamentos] = querysPromises;
+
+    const total = parseInt(contagemApontamentos.total);
+
+    /* Montagem do objeto de retorno com as informações da paginação */
+    const retornoPaginado = {
+      paginacao: {
+        paginas: this.totalPaginas(limite, total),
+        total: total,
+        pg_atual: pg,
+      },
+      registros: apontamentos,
+    };
+
+    return retornoPaginado;
   }
 
   async atualizarApontamento(
