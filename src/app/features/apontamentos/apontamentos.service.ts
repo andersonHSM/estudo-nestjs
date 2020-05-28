@@ -1,4 +1,11 @@
-import { Injectable, Inject, HttpException, HttpStatus } from '@nestjs/common';
+import {
+  Injectable,
+  Inject,
+  HttpException,
+  HttpStatus,
+  forwardRef,
+  OnModuleInit,
+} from '@nestjs/common';
 
 import Knex = require('knex');
 import {
@@ -9,6 +16,7 @@ import {
   sub,
   format,
 } from 'date-fns';
+import { Request } from 'express';
 
 import { KNEX_CONNECTION } from '@config/knex/knex.token';
 import { ApontamentoCriar } from '@shared/models/apontamentos/apontamento-criar.model';
@@ -28,11 +36,13 @@ import { bodyVazioException } from '@shared/exceptions/request/body-vazio';
 import { apontamentoReturningArray } from '@shared/knex/models/apontamentos/returning-array';
 import { TabelasSistema } from '@shared/knex/tables.enum';
 import { dataFimMenoDataInicioException } from '@shared/exceptions/apontamentos/data-fim-menor-data-inicio.exception';
+import { QueryPaginacaoApontamento } from '@shared/models/apontamentos/query-paginacao-apontamentos.model';
 
 @Injectable()
 export class ApontamentosService {
   constructor(
     @Inject(KNEX_CONNECTION) private readonly knex: Knex,
+    @Inject(forwardRef(() => UsuariosService))
     private readonly usuariosService: UsuariosService,
   ) {}
 
@@ -159,30 +169,104 @@ export class ApontamentosService {
     }
   }
 
-  async listarApontamentos(reqId: number) {
-    const usuario = await this.usuariosService.findUserById(reqId);
-    const { is_provider, id } = usuario;
+  private totalPaginas(limite: number, total: number) {
+    const razao = total / limite;
 
-    if (!is_provider) {
-      return await this.knex
-        .select(...apontamentoReturningArray)
-        .from(TabelasSistema.APONTAMENTOS)
-        .where({ user_id: id, canceled_at: null })
-        .whereBetween('data', [
-          formatISO(new Date()),
-          add(new Date(), { years: 1 }),
-        ])
-        .orderBy('data', 'asc');
-    } else {
-      return await this.knex
-        .select(...apontamentoReturningArray)
-        .from(TabelasSistema.APONTAMENTOS)
-        .where({ provedor_id: id, canceled_at: null })
-        .whereBetween('data', [
-          formatISO(new Date()),
-          add(new Date(), { years: 1 }),
-        ]);
+    return Math.ceil(razao);
+  }
+
+  async listarApontamentosUsuario(
+    user_id: number,
+    queryParameters: QueryPaginacaoApontamento,
+  ) {
+    const limite = parseInt(queryParameters.limite, 10) || 10;
+    const pg = parseInt(queryParameters.pg, 10) || 1;
+
+    if (limite === 0) {
+      throw new HttpException(
+        { error: 'Quantidade de items por página não pode ser igual a zero.' },
+        HttpStatus.BAD_REQUEST,
+      );
     }
+
+    /* Realiza a contagem e posteriormente a consulta às
+    informações da tabela e resolve em uma única promise */
+    const querysPromises = await Promise.all([
+      this.knex(TabelasSistema.APONTAMENTOS)
+        .count({ total: 'id' })
+        .where({ canceled_at: null, user_id })
+        .first(),
+      this.knex
+        .select('id', 'user_id', 'provedor_id', 'data_inicio', 'data_fim')
+        .from(TabelasSistema.APONTAMENTOS)
+        .where({ user_id, canceled_at: null })
+        .orderBy('data_inicio')
+        .limit(limite)
+        .offset((pg - 1) * limite),
+    ]);
+
+    const [contagemApontamentos, apontamentos] = querysPromises;
+
+    const total = parseInt(contagemApontamentos.total);
+
+    /* Montagem do objeto de retorno com as informações da paginação */
+    const retornoPaginado = {
+      paginacao: {
+        paginas: this.totalPaginas(limite, total),
+        total: total,
+        pg_atual: pg,
+      },
+      registros: apontamentos,
+    };
+
+    return retornoPaginado;
+  }
+
+  async listarApontamentosProvedor(
+    provedor_id: number,
+    queryParameters: QueryPaginacaoApontamento,
+  ) {
+    const limite = parseInt(queryParameters.limite, 10) || 10;
+    const pg = parseInt(queryParameters.pg, 10) || 1;
+
+    if (limite === 0) {
+      throw new HttpException(
+        { error: 'Quantidade de items por página não pode ser igual a zero.' },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    /* Realiza a contagem e posteriormente a consulta às
+    informações da tabela e resolve em uma única promise */
+    const querysPromises = await Promise.all([
+      this.knex(TabelasSistema.APONTAMENTOS)
+        .count({ total: 'id' })
+        .where({ canceled_at: null, provedor_id })
+        .first(),
+      this.knex
+        .select('id', 'user_id', 'provedor_id', 'data_inicio', 'data_fim')
+        .from(TabelasSistema.APONTAMENTOS)
+        .where({ provedor_id, canceled_at: null })
+        .orderBy('data_inicio')
+        .limit(limite)
+        .offset((pg - 1) * limite),
+    ]);
+
+    const [contagemApontamentos, apontamentos] = querysPromises;
+
+    const total = parseInt(contagemApontamentos.total);
+
+    /* Montagem do objeto de retorno com as informações da paginação */
+    const retornoPaginado = {
+      paginacao: {
+        paginas: this.totalPaginas(limite, total),
+        total: total,
+        pg_atual: pg,
+      },
+      registros: apontamentos,
+    };
+
+    return retornoPaginado;
   }
 
   async atualizarApontamento(

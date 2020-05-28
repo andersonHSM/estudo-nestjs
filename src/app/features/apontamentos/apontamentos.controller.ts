@@ -10,13 +10,6 @@ import { ApontamentoEditar } from '@shared/models/apontamentos/apontamento-edita
 export class ApontamentosController {
   constructor(private readonly apontamentosService: ApontamentosService) {}
 
-  @Get()
-  listar(@Req() req: Request) {
-    const reqId = req.user as number;
-
-    return this.apontamentosService.listarApontamentos(reqId);
-  }
-
   @Post()
   async criarApontamento(@Body() body: ApontamentoCriar, @Req() req: Request) {
     const { user } = req;

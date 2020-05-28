@@ -1,8 +1,13 @@
-import { Injectable, Inject, HttpException, HttpStatus } from '@nestjs/common';
+import {
+  Injectable,
+  Inject,
+  HttpException,
+  HttpStatus,
+  forwardRef,
+} from '@nestjs/common';
 import * as Knex from 'knex';
 import * as Joi from '@hapi/joi';
 import { compare, hash } from 'bcrypt';
-import { add, setHours, startOfHour, getHours } from 'date-fns';
 
 import { KNEX_CONNECTION } from '@config/knex/knex.token';
 
@@ -25,12 +30,17 @@ import { usuarioJaExisteException } from '@shared/exceptions/usuarios/usuario-ja
 import { TabelasSistema } from '@shared/knex/tables.enum';
 import { AgendaModel } from '@shared/knex/models/agenda/agenda.model';
 import { provedorInfoInvalidoException } from '@shared/exceptions/usuarios/provedor-info-invalido.exception';
+import { ApontamentosService } from '@features/apontamentos/apontamentos.service';
+import { ApontamentoCriar } from '@shared/models/apontamentos/apontamento-criar.model';
+import { QueryPaginacaoApontamento } from '@shared/models/apontamentos/query-paginacao-apontamentos.model';
 
 @Injectable()
 export class UsuariosService {
   constructor(
     @Inject(KNEX_CONNECTION) private readonly knex: Knex,
     private readonly avatarService: AvatarService,
+    @Inject(forwardRef(() => ApontamentosService))
+    private readonly apontamentosService: ApontamentosService,
   ) {}
   async isProvider(id: number): Promise<boolean> {
     const [user] = (await this.knex(TabelasSistema.USUARIOS)
@@ -255,5 +265,21 @@ export class UsuariosService {
     } catch (error) {
       throw new HttpException({ error }, HttpStatus.INTERNAL_SERVER_ERROR);
     }
+  }
+
+  criarApontamentoUsuario(
+    dados: ApontamentoCriar,
+    paramUserId: number,
+    reqUserId: number,
+  ) {
+    return this.apontamentosService.criarApontamentoUsuario(
+      dados,
+      paramUserId,
+      reqUserId,
+    );
+  }
+
+  listarApontamentosUsuario(userId: number, query: QueryPaginacaoApontamento) {
+    return this.apontamentosService.listarApontamentosUsuario(userId, query);
   }
 }

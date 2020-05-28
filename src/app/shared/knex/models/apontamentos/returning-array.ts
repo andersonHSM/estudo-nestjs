@@ -3,5 +3,6 @@ export const apontamentoReturningArray = [
   'canceled_at',
   'user_id',
   'provedor_id',
-  'data',
+  'data_inicio',
+  'data_fim',
 ];
