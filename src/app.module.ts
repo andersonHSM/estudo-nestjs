@@ -9,7 +9,7 @@ import { AppService } from './app.service';
 
 import { UsuariosModule } from './app/features/usuarios/usuarios.module';
 import { AuthModule } from './app/features/auth/auth.module';
-import { JwtMiddleware } from '@shared/middlewares/jwt.middleware';
+import { JwtMiddleware } from '@shared/middlewares/jwt/jwt.middleware';
 import { JwtModule } from '@nestjs/jwt';
 import { AvatarModule } from '@common/avatar/avatar.module';
 import { ApontamentosModule } from './app/features/apontamentos/apontamentos.module';

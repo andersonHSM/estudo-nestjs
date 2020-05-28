@@ -38,26 +38,6 @@ export class ApontamentosService {
     private readonly usuariosService: UsuariosService,
   ) {}
 
-  private async listarApontamentosUsuario(
-    requestId: number,
-    userId: number,
-    queryParameters: QueryPaginacaoApontamento,
-  ) {
-    const usuario = await this.usuariosService.findUserById(userId);
-
-    return { usuario };
-  }
-
-  private async listarApontamentosProvedor(
-    requestId: number,
-    userId: number,
-    queryParameters: QueryPaginacaoApontamento,
-  ) {
-    const usuario = await this.usuariosService.findUserById(userId);
-
-    return { usuario };
-  }
-
   private async encontarApontamentoPeloId(id: number) {
     const [apontamento] = (await this.knex(TabelasSistema.APONTAMENTOS)
       .where({ id })
@@ -181,47 +161,57 @@ export class ApontamentosService {
     }
   }
 
+  private totalPaginas(limite: number, total: number) {
+    const razao = total / limite;
+
+    return razao === total ? (total = razao) : (total = Math.floor(razao) + 1);
+  }
+
   async listarApontamentos(
-    requestId: number,
-    userId: number,
+    user_id: number,
     queryParameters: QueryPaginacaoApontamento,
   ) {
-    const usuario = await this.usuariosService.findUserById(userId);
+    const limite = parseInt(queryParameters.limite, 10) || 10;
+    const pg = parseInt(queryParameters.pg, 10) || 1;
 
-    if (!usuario) {
-      throw usuarioNaoEncontradoException();
+    if (limite === 0) {
+      throw new HttpException(
+        { error: 'Quantidade de items por página não pode ser igual a zero.' },
+        HttpStatus.BAD_REQUEST,
+      );
     }
 
-    const { is_provider } = usuario;
+    /* Realiza a contagem e posteriormente a consulta às
+    informações da tabela e resolve em uma única promise */
+    const querysPromises = await Promise.all([
+      this.knex(TabelasSistema.APONTAMENTOS)
+        .count({ total: 'id' })
+        .where({ canceled_at: null, user_id })
+        .first(),
+      this.knex
+        .select('id', 'user_id', 'provedor_id', 'data_inicio', 'data_fim')
+        .from(TabelasSistema.APONTAMENTOS)
+        .where({ user_id, canceled_at: null })
+        .orderBy('data_inicio')
+        .limit(limite)
+        .offset((pg - 1) * limite),
+    ]);
 
-    if (is_provider) {
-      // return await this.listarApontamentosProvedor()
-    }
+    const [contagemApontamentos, apontamentos] = querysPromises;
 
-    return usuario;
+    const total = parseInt(contagemApontamentos.total);
 
-    // const { is_provider, id } = usuario;
+    /* Montagem do objeto de retorno com as informações da paginação */
+    const retorno = {
+      paginacao: {
+        paginas: this.totalPaginas(limite, total),
+        total: total,
+        pg_atual: pg,
+      },
+      registros: apontamentos,
+    };
 
-    // if (!is_provider) {
-    //   return await this.knex
-    //     .select(...apontamentoReturningArray)
-    //     .from(TabelasSistema.APONTAMENTOS)
-    //     .where({ user_id: id, canceled_at: null })
-    //     .whereBetween('data', [
-    //       formatISO(new Date()),
-    //       add(new Date(), { years: 1 }),
-    //     ])
-    //     .orderBy('data', 'asc');
-    // } else {
-    //   return await this.knex
-    //     .select(...apontamentoReturningArray)
-    //     .from(TabelasSistema.APONTAMENTOS)
-    //     .where({ provedor_id: id, canceled_at: null })
-    //     .whereBetween('data', [
-    //       formatISO(new Date()),
-    //       add(new Date(), { years: 1 }),
-    //     ]);
-    // }
+    return retorno;
   }
 
   async atualizarApontamento(

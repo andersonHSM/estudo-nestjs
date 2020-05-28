@@ -31,7 +31,7 @@ export class UsuariosIguaisGuard implements CanActivate {
     );
 
     /* Verifica se os usuários existem e apenas permite que o provedor verifique sua agenda. */
-    if (usuarioParemetro && usuarioRequest && usuarioRequest.is_provider) {
+    if (usuarioRequest.is_provider) {
       if (usuarioRequest.id !== usuarioParemetro.id) {
         throw verificarApenasAgendaPropriaException();
       }

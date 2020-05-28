@@ -18,7 +18,9 @@ import { UsuariosService } from './usuarios.service';
 import { UserPatch } from '@shared/models/users/user-patch.model';
 import { ApontamentosService } from '../apontamentos/apontamentos.service';
 import { QueryPaginacaoApontamento } from '@shared/models/apontamentos/query-paginacao-apontamentos.model';
-import { UsuariosIguaisGuard } from '../apontamentos/guards/usuarios-iguais/usuarios-iguais.guard';
+import { UsuariosIguaisGuard } from '@shared/guards/usuarios-iguais/usuarios-iguais.guard';
+import { UsuarioRequestExistenteGuard } from '@shared/guards/usuario-request-existente/usuario-request-existente.guard';
+import { VisualizarApontamentosUsuarioGuard } from '@shared/guards/visualizar-apontamentos-usuario/visualizar-apontamentos-usuario.guard';
 
 @Controller('usuarios')
 export class UsuariosController {
@@ -70,21 +72,14 @@ export class UsuariosController {
     return apontamento;
   }
 
-  @UseGuards(UsuariosIguaisGuard)
-  @Get(':userId/apontamentos')
+  @UseGuards(VisualizarApontamentosUsuarioGuard)
+  @Get(':userId/apontamentos/')
   async listarApontamentosUsuario(
-    @Req() req: Request,
     @Param() param: { userId: string },
     @Query() query: QueryPaginacaoApontamento,
   ) {
-    const requestId = +req.user;
     const { userId } = param;
 
-    console.log(requestId);
-    return await this.apontamentosService.listarApontamentos(
-      requestId,
-      +userId,
-      query,
-    );
+    return await this.apontamentosService.listarApontamentos(+userId, query);
   }
 }
