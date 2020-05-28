@@ -7,11 +7,11 @@ import { QueryPaginacaoApontamento } from '@shared/models/apontamentos/query-pag
 export class ProvedoresService {
   constructor(private readonly apontamentosService: ApontamentosService) {}
 
-  async listarApontamentos(
+  listarApontamentos(
     provedorId: number,
     parametros: QueryPaginacaoApontamento,
   ) {
-    return await this.apontamentosService.listarApontamentosProvedor(
+    return this.apontamentosService.listarApontamentosProvedor(
       provedorId,
       parametros,
     );
