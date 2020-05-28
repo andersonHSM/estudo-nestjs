@@ -68,6 +68,14 @@ export class UsuariosService {
     return queryResult;
   }
 
+  async retornarUsuarioComCredenciais(email: string): Promise<UsuarioModel> {
+    return await this.knex
+      .select('*')
+      .from(TabelasSistema.USUARIOS)
+      .where({ email })
+      .first();
+  }
+
   private async validarSenha(id: number, password: string): Promise<boolean> {
     const [resultadoQuery] = (await this.knex
       .from<UsuarioModel>('usuarios')

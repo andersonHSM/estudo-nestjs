@@ -1,11 +1,4 @@
-import {
-  Controller,
-  Post,
-  Body,
-  Res,
-  HttpException,
-  HttpStatus,
-} from '@nestjs/common';
+import { Controller, Post, Body, Res } from '@nestjs/common';
 import { Response } from 'express';
 
 import { AuthService } from './auth.service';
@@ -16,16 +9,9 @@ export class AuthController {
 
   @Post('login')
   async login(@Body() body, @Res() res: Response) {
-    try {
-      const user = await this.authService.validateUser(body);
-      const token = this.authService.login(user.id);
+    const user = await this.authService.validateUser(body);
+    const token = this.authService.login(user.id);
 
-      return res.status(200).json({ token, user: user.id });
-    } catch (error) {
-      throw new HttpException(
-        { error: 'Invalid credentials provided.' },
-        HttpStatus.FORBIDDEN,
-      );
-    }
+    return res.status(200).json({ token, user: user.id });
   }
 }
