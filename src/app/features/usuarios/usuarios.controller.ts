@@ -16,10 +16,7 @@ import { UserCreate } from '@shared/models/users/user-create.models';
 import { UsuariosService } from './usuarios.service';
 
 import { UserPatch } from '@shared/models/users/user-patch.model';
-import { ApontamentosService } from '../apontamentos/apontamentos.service';
 import { QueryPaginacaoApontamento } from '@shared/models/apontamentos/query-paginacao-apontamentos.model';
-import { UsuariosIguaisGuard } from '@shared/guards/usuarios-iguais/usuarios-iguais.guard';
-import { UsuarioRequestExistenteGuard } from '@shared/guards/usuario-request-existente/usuario-request-existente.guard';
 import { VisualizarApontamentosUsuarioGuard } from '@shared/guards/visualizar-apontamentos-usuario/visualizar-apontamentos-usuario.guard';
 import { UsuariosParamsModel } from '@shared/models/users/usuarios-params.model';
 import { UsuariosParams } from '@shared/routes-helpers/usuarios-params.enum';
@@ -27,8 +24,7 @@ import { UsuariosParams } from '@shared/routes-helpers/usuarios-params.enum';
 @Controller('usuarios')
 export class UsuariosController {
   constructor(
-    private readonly usuariosService: UsuariosService,
-    private readonly apontamentosService: ApontamentosService,
+    private readonly usuariosService: UsuariosService, // private readonly apontamentosService: ApontamentosService,
   ) {}
 
   @Post()
@@ -65,7 +61,7 @@ export class UsuariosController {
   ) {
     const reqId = +req.user;
     const user = +param.userId;
-    const apontamento = await this.apontamentosService.criarApontamentoUsuario(
+    const apontamento = await this.usuariosService.criarApontamentoUsuario(
       dados,
       user,
       reqId,
@@ -82,9 +78,6 @@ export class UsuariosController {
   ) {
     const { userId } = param;
 
-    return await this.apontamentosService.listarApontamentosUsuario(
-      +userId,
-      query,
-    );
+    return await this.usuariosService.listarApontamentosUsuario(+userId, query);
   }
 }

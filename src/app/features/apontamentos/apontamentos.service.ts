@@ -1,4 +1,11 @@
-import { Injectable, Inject, HttpException, HttpStatus } from '@nestjs/common';
+import {
+  Injectable,
+  Inject,
+  HttpException,
+  HttpStatus,
+  forwardRef,
+  OnModuleInit,
+} from '@nestjs/common';
 
 import Knex = require('knex');
 import {
@@ -35,6 +42,7 @@ import { QueryPaginacaoApontamento } from '@shared/models/apontamentos/query-pag
 export class ApontamentosService {
   constructor(
     @Inject(KNEX_CONNECTION) private readonly knex: Knex,
+    @Inject(forwardRef(() => UsuariosService))
     private readonly usuariosService: UsuariosService,
   ) {}
 
@@ -164,7 +172,7 @@ export class ApontamentosService {
   private totalPaginas(limite: number, total: number) {
     const razao = total / limite;
 
-    return razao === total ? (total = razao) : (total = Math.floor(razao) + 1);
+    return Math.ceil(razao);
   }
 
   async listarApontamentosUsuario(

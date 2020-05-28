@@ -4,7 +4,7 @@ import { UsuariosController } from './usuarios.controller';
 
 import { AvatarModule } from '@common/avatar/avatar.module';
 import { KnexModule } from '@shared/knex/knex.module';
-import { ApontamentosModule } from '../apontamentos/apontamentos.module';
+import { ApontamentosModule } from '@features/apontamentos/apontamentos.module';
 
 @Module({
   imports: [forwardRef(() => ApontamentosModule), KnexModule, AvatarModule],
